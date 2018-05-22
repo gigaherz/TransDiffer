@@ -1,0 +1,169 @@
+﻿<Window x:Class="TransDiffer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:TransDiffer"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="1157.601" Width="1704.128" ResizeMode="CanResizeWithGrip"
+        Background="{x:Static SystemColors.ControlBrush}"
+        DataContext="{Binding RelativeSource={RelativeSource Self}}">
+    <Window.Resources>
+        <Style x:Key="BaseButtonStyle" TargetType="Button">
+            <Style.Setters>
+                <Setter Property="Padding" Value="12,3" />
+                <Setter Property="MinWidth" Value="80"></Setter>
+            </Style.Setters>
+        </Style>
+        <ContextMenu x:Key="FileContextMenu">
+            <MenuItem Header="Open" Command="{Binding OpenLangFileCommand, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" CommandParameter="{Binding .}"></MenuItem>
+            <MenuItem Header="Show in Explorer" Command="{Binding ShowInExplorerCommand, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" CommandParameter="{Binding .}"></MenuItem>
+        </ContextMenu>
+
+        <HierarchicalDataTemplate x:Key="ByFileTemplate" ItemsSource="{Binding FileLists}" DataType="{x:Type local:LangFolder}">
+            <HierarchicalDataTemplate.ItemTemplate>
+                <HierarchicalDataTemplate ItemsSource="{Binding Files}">
+                    <HierarchicalDataTemplate.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" Background="{Binding Background}" />
+                        </DataTemplate>
+                    </HierarchicalDataTemplate.ItemTemplate>
+                    <TextBlock Text="{Binding Name}" Background="{Binding Background}" Tag="{Binding ., Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
+                        <TextBlock.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Open" Command="{Binding PlacementTarget.Tag.OpenLangFileCommand,RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=ContextMenu}}" CommandParameter="{Binding File}"></MenuItem>
+                                <MenuItem Header="Show in Explorer" Command="{Binding PlacementTarget.Tag.ShowInExplorerCommand,RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=ContextMenu}}" CommandParameter="{Binding File}"></MenuItem>
+                            </ContextMenu>
+                        </TextBlock.ContextMenu>
+                    </TextBlock>
+                </HierarchicalDataTemplate>
+            </HierarchicalDataTemplate.ItemTemplate>
+            <TextBlock Text="{Binding Name}" Background="{Binding Background}"></TextBlock>
+        </HierarchicalDataTemplate>
+
+        <HierarchicalDataTemplate x:Key="ByIdTemplate" ItemsSource="{Binding NamedStrings}" DataType="{x:Type local:LangFolder}">
+            <HierarchicalDataTemplate.ItemTemplate>
+                <HierarchicalDataTemplate ItemsSource="{Binding Lines}">
+                    <HierarchicalDataTemplate.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Language}" Background="{Binding Background}" />
+                        </DataTemplate>
+                    </HierarchicalDataTemplate.ItemTemplate>
+                    <TextBlock Text="{Binding Name}" Background="{Binding Background}" />
+                </HierarchicalDataTemplate>
+            </HierarchicalDataTemplate.ItemTemplate>
+            <TextBlock Text="{Binding Name}" Background="{Binding Background}"></TextBlock>
+        </HierarchicalDataTemplate>        
+    </Window.Resources>
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="File">
+                <MenuItem Header="Exit" />
+            </MenuItem>
+            <MenuItem Header="Languages">
+                <MenuItem Header="Rescan" />
+            </MenuItem>
+            <MenuItem Header="View">
+                <MenuItem Header="By File" IsCheckable="True" IsChecked="{Binding IsByFile, Mode=OneWay}" Command="{Binding ByFileCommand}" />
+                <MenuItem Header="By ID" IsCheckable="True" IsChecked="{Binding IsById, Mode=OneWay}" Command="{Binding ByIdCommand}" />
+            </MenuItem>
+            <MenuItem Header="Options">
+                <MenuItem Header="TODO" />
+            </MenuItem>
+            <MenuItem Header="Help">
+                <MenuItem Header="GIT GUD!" />
+            </MenuItem>
+        </Menu>
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem>
+                <ProgressBar x:Name="LoadingProgress" Width="120" MinHeight="18" VerticalAlignment="Stretch"></ProgressBar>
+            </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock x:Name="StatusLabel" Text="Loading..." />
+            </StatusBarItem>
+        </StatusBar>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" MinWidth="240"/>
+                <ColumnDefinition Width="5*"/>
+            </Grid.ColumnDefinitions>
+            <TreeView Grid.Column="0"
+                      x:Name="FoldersTree"
+                      ItemsSource="{Binding Folders}" SelectedItemChanged="TreeView_SelectedItemChanged" Grid.RowSpan="2" Margin="0,0,8,0"
+                      ItemTemplate="{StaticResource ByIdTemplate}">
+                <TreeView.ItemContainerStyle>
+                    <Style TargetType="{x:Type TreeViewItem}">
+                        <Setter Property="IsExpanded" 
+                                Value="{Binding IsExpanded, Mode=OneWay}" />
+                    </Style>
+                </TreeView.ItemContainerStyle>
+            </TreeView>
+            <GridSplitter Grid.Column="0" MinWidth="8"></GridSplitter>
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,8">
+                    <StackPanel.Resources>
+                        <Style TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+                            <Setter Property="Margin" Value="0,0,6,0" />
+                            <Setter Property="Padding" Value="4" />
+                        </Style>
+                    </StackPanel.Resources>
+                    <Button>
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Prev. String" Margin="8,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="🡱" Foreground="SeaGreen" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                    <Button>
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Next String" Margin="8,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="🡳" Foreground="SeaGreen" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                    <Grid Width="12"></Grid>
+                    <Button>
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Prev. Issue" Margin="8,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="🡱" Foreground="DarkRed" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                    <Button>
+                        <Button.Content>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Next Issue" Margin="8,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="🡳" Foreground="DarkRed" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button.Content>
+                    </Button>
+                </StackPanel>
+                <RichTextBox x:Name="FileContents" Grid.Column="1" Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                </RichTextBox>
+            </Grid>
+        </Grid>
+    </DockPanel>
+</Window>
