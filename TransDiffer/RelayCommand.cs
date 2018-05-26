@@ -5,7 +5,18 @@ namespace TransDiffer
 {
     public class RelayCommand : ICommand
     {
-        public Action<object> Target { get; }
+        private Action<object> _target;
+
+        public Action<object> Target
+        {
+            get => _target;
+            set
+            {
+                if (_target == value) return;
+                _target = value;
+                CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
 
         public RelayCommand(Action<object> target)
         {

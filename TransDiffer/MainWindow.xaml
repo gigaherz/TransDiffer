@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TransDiffer"
+        xmlns:model="clr-namespace:TransDiffer"
         mc:Ignorable="d"
         Title="MainWindow" Height="1157.601" Width="1704.128" ResizeMode="CanResizeWithGrip"
         Background="{x:Static SystemColors.ControlBrush}"
@@ -20,14 +21,9 @@
             <MenuItem Header="Show in Explorer" Command="{Binding ShowInExplorerCommand, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" CommandParameter="{Binding .}"></MenuItem>
         </ContextMenu>
 
-        <HierarchicalDataTemplate x:Key="ByFileTemplate" ItemsSource="{Binding FileLists}" DataType="{x:Type local:LangFolder}">
+        <HierarchicalDataTemplate x:Key="ByFileTemplate" ItemsSource="{Binding Files}" DataType="{x:Type model:ComponentFolder}">
             <HierarchicalDataTemplate.ItemTemplate>
-                <HierarchicalDataTemplate ItemsSource="{Binding Files}">
-                    <HierarchicalDataTemplate.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Name}" Background="{Binding Background}" />
-                        </DataTemplate>
-                    </HierarchicalDataTemplate.ItemTemplate>
+                <DataTemplate DataType="{x:Type model:LangFile}">
                     <TextBlock Text="{Binding Name}" Background="{Binding Background}" Tag="{Binding ., Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
                         <TextBlock.ContextMenu>
                             <ContextMenu>
@@ -36,14 +32,21 @@
                             </ContextMenu>
                         </TextBlock.ContextMenu>
                     </TextBlock>
-                </HierarchicalDataTemplate>
+                </DataTemplate>
             </HierarchicalDataTemplate.ItemTemplate>
-            <TextBlock Text="{Binding Name}" Background="{Binding Background}"></TextBlock>
+            <TextBlock Text="{Binding Name}" Background="{Binding Background}" Tag="{Binding ., Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}">
+                <TextBlock.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Open" Command="{Binding PlacementTarget.Tag.OpenLangFileCommand,RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=ContextMenu}}" CommandParameter="{Binding Path}"></MenuItem>
+                        <MenuItem Header="Show in Explorer" Command="{Binding PlacementTarget.Tag.ShowInExplorerCommand,RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=ContextMenu}}" CommandParameter="{Binding Path}"></MenuItem>
+                    </ContextMenu>
+                </TextBlock.ContextMenu>
+            </TextBlock>
         </HierarchicalDataTemplate>
 
-        <HierarchicalDataTemplate x:Key="ByIdTemplate" ItemsSource="{Binding NamedStrings}" DataType="{x:Type local:LangFolder}">
+        <HierarchicalDataTemplate x:Key="ByIdTemplate" ItemsSource="{Binding NamedStrings}" DataType="{x:Type model:ComponentFolder}">
             <HierarchicalDataTemplate.ItemTemplate>
-                <HierarchicalDataTemplate ItemsSource="{Binding Lines}">
+                <HierarchicalDataTemplate ItemsSource="{Binding Lines}" DataType="{x:Type model:TranslationString}">
                     <HierarchicalDataTemplate.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Language}" Background="{Binding Background}" />
@@ -90,7 +93,7 @@
             <TreeView Grid.Column="0"
                       x:Name="FoldersTree"
                       ItemsSource="{Binding Folders}" SelectedItemChanged="TreeView_SelectedItemChanged" Grid.RowSpan="2" Margin="0,0,8,0"
-                      ItemTemplate="{StaticResource ByIdTemplate}">
+                      ItemTemplate="{StaticResource ByFileTemplate}">
                 <TreeView.ItemContainerStyle>
                     <Style TargetType="{x:Type TreeViewItem}">
                         <Setter Property="IsExpanded" 
