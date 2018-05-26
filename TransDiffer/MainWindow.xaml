@@ -63,7 +63,8 @@
             <MenuItem Header="File">
                 <MenuItem Header="Exit" />
             </MenuItem>
-            <MenuItem Header="Languages">
+            <MenuItem Header="Workspace">
+                <MenuItem Header="Change Folder" Click="ChangeWorkspace_Click" />
                 <MenuItem Header="Rescan" />
             </MenuItem>
             <MenuItem Header="View">

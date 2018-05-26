@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using TransDiffer.Annotations;
+using TransDiffer.Properties;
 
 namespace TransDiffer
 {
@@ -59,8 +60,18 @@ namespace TransDiffer
             });
 
             InitializeComponent();
+        }
 
-            RunInWorker(progress => ScanFolder(@"F:\Reactos\sources", progress), () =>
+        public void Show(string browsePath)
+        {
+            Show();
+            ScanFolder(browsePath);
+        }
+
+        public void ScanFolder(string browsePath)
+        {
+            Folders.Clear();
+            RunInWorker(progress => ScanFolder(browsePath, progress), () =>
             {
                 var c = Folders.Count(f => f.HasErrors);
                 if (c > 0)
@@ -178,6 +189,24 @@ namespace TransDiffer
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private void ChangeWorkspace_Click(object sender, RoutedEventArgs e)
+        {
+            var set = new Settings();
+            var dialog = new SelectFolderDialog
+            {
+                WorkspaceFolder = Root.FullName,
+                Owner = this
+            };
+            if (dialog.ShowDialog() == true)
+            {
+                var browsePath = dialog.WorkspaceFolder;
+                set.WorkspaceFolder = browsePath;
+                set.Save();
+
+                ScanFolder(browsePath);
+            }
         }
     }
 }
