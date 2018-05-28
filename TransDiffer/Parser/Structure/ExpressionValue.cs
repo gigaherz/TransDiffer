@@ -19,12 +19,7 @@ namespace TransDiffer.Parser.Structure
 
         public int CompareTo(Token token)
         {
-            if (token == null)
-                return -1;
-            int line = Math.Sign(Context.Line - token.Context.Line);
-            if (line != 0)
-                return line;
-            return Math.Sign(Context.Column - token.Context.Column);
+            return Context.CompareTo(token?.Context);
         }
     }
 }

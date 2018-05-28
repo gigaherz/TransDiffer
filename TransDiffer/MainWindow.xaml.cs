@@ -132,6 +132,7 @@ namespace TransDiffer
 
         private bool _isScanningAllowed;
         private bool _canCancel;
+        private bool _showDetailsPane = false;
 
         public Action RunInWorker(Action<Action<int>, Func<bool>, Action> task, Action<bool> completion)
         {
@@ -286,21 +287,49 @@ namespace TransDiffer
                 CancelScanning?.Invoke();
         }
 
+        public bool ShowDetailsPane
+        {
+            get { return _showDetailsPane; }
+            set
+            {
+                if (value == _showDetailsPane) return;
+                _showDetailsPane = value;
+                OnPropertyChanged();
+            }
+        }
+
         private void FileContents_OnSelectionChanged(object sender, RoutedEventArgs e)
         {
             var cp = FileContents.CaretPosition;
             var p = cp.Paragraph;
-            if (p?.Tag is TranslationStringReference str)
+            if (p?.Tag is SourceInfo info && info.Strings.Count > 0)
             {
-                DetailsPane.Document = str.String.CreateDetailsDocument();
+                DetailsPane.Document = info.Strings.First().String.CreateDetailsDocument();
+                ShowDetailsPane = true;
             }
             else if (FoldersTree.SelectedItem is LangFile f)
             {
                 DetailsPane.Document = f.CreateDetailsDocument();
+                ShowDetailsPane = true;
             }
             else
             {
                 DetailsPane.Document = new FlowDocument();
+                ShowDetailsPane = false;
+            }
+        }
+
+        private void FileContents_OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            var cp = FileContents.CaretPosition;
+            if (cp.Paragraph.Tag is SourceInfo r)
+            {
+                var cmdline = _externalEditorCommandLinePattern
+                    .Replace("$file$", r.File.FullName)
+                    .Replace("$line$", r.Line.ToString());
+                Process p = new Process();
+                p.StartInfo = new ProcessStartInfo(_externalEditorPath, cmdline);
+                p.Start();
             }
         }
 
@@ -325,30 +354,6 @@ namespace TransDiffer
                 _externalEditorPath = cfg.ExternalEditorPath;
                 _externalEditorCommandLinePattern = ExternalEditorDialog.NameToPattern(cfg.ExternalEditorCommandLineStyle, cfg.ExternalEditorCommandLinePattern);
             }
-        }
-
-        private void FileContents_OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            var cp = FileContents.CaretPosition;
-            if (cp.Paragraph.Tag is TranslationStringReference r)
-            {
-                var cmdline = _externalEditorCommandLinePattern
-                    .Replace("$file$", r.Source.File.FullName)
-                    .Replace("$line$", r.Context.Line.ToString());
-                Process p = new Process();
-                p.StartInfo = new ProcessStartInfo(_externalEditorPath, cmdline);
-                p.Start();
-            }
-        }
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            FileContents.Selection.ApplyPropertyValue(TextElement.BackgroundProperty, Brushes.Red);
-        }
-
-        private void Button_Click_1(object sender, RoutedEventArgs e)
-        {
-            FileContents.Selection.ApplyPropertyValue(TextElement.BackgroundProperty, Brushes.Pink);
         }
     }
 }

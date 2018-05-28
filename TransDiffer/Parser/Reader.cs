@@ -15,6 +15,7 @@ namespace TransDiffer.Parser
         private readonly string sourceName;
 
         private bool endQueued;
+        private int offset = 0;
         private int line = 1;
         private int column = 1;
 
@@ -64,7 +65,7 @@ namespace TransDiffer.Parser
         private int Next()
         {
             int ch = unreadBuffer.Remove();
-
+            offset++;
             column++;
             if (ch == '\n')
             {
@@ -126,7 +127,7 @@ namespace TransDiffer.Parser
 
         public ParsingContext GetParsingContext()
         {
-            return new ParsingContext(sourceName, line, column);
+            return new ParsingContext(sourceName, offset, line, column);
         }
     }
 }

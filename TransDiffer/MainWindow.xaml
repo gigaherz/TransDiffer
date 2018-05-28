@@ -149,7 +149,7 @@
                         </Button.Content>
                     </Button>
                     <Grid Width="12"></Grid>
-                    <Button Click="Button_Click">
+                    <Button>
                         <Button.Content>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -161,7 +161,7 @@
                             </Grid>
                         </Button.Content>
                     </Button>
-                    <Button Click="Button_Click_1">
+                    <Button>
                         <Button.Content>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -178,9 +178,8 @@
                              IsReadOnly="true" IsReadOnlyCaretVisible="True" SelectionChanged="FileContents_OnSelectionChanged"
                              MouseDoubleClick="FileContents_OnMouseDoubleClick">
                 </RichTextBox>
-                <RichTextBox x:Name="DetailsPane" Grid.Row="2" Margin="0,5,0,0" 
-                             MaxHeight="500"
-                             BorderBrush="Transparent" BorderThickness="0" IsReadOnly="true" IsReadOnlyCaretVisible="False" Background="Transparent">
+                <RichTextBox x:Name="DetailsPane" Grid.Row="2" Margin="0,5,0,0" Visibility="{Binding ShowDetailsPane, Converter={StaticResource B2V}}"
+                             MaxHeight="500" BorderBrush="Transparent" BorderThickness="0" IsReadOnly="true" IsReadOnlyCaretVisible="False" Background="Transparent">
                 </RichTextBox>
             </Grid>
         </Grid>

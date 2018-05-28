@@ -69,6 +69,7 @@
     <Compile Include="Model\ComponentFolder.cs" />
     <Compile Include="Model\IExpandable.cs" />
     <Compile Include="Model\LangFile.cs" />
+    <Compile Include="Model\SourceInfo.cs" />
     <Compile Include="Model\SubLang.cs" />
     <Compile Include="Model\TranslationString.cs" />
     <Compile Include="Model\TranslationStringReference.cs" />

@@ -21,7 +21,7 @@ namespace TransDiffer.Model
         public ObservableCollection<SubLang> ContainedLangs { get; } = new ObservableCollection<SubLang>();
 
         public string Name => File.Name;
-        public bool HasErrors => NamedLines.Values.Any(nl => nl.String.MissingInLanguages.Count > 0);
+        public bool HasErrors { get; private set; }
         public Brush Background => HasErrors ? Brushes.Pink : Brushes.Transparent;
 
         public bool IsExpanded
@@ -43,9 +43,29 @@ namespace TransDiffer.Model
         public void FinishLoading()
         {
             IsExpanded = HasErrors;
+
+            HasErrors = Folder.NamedStrings.Any(s => s.MissingInLanguages.Intersect(ContainedLangs).Any());
         }
 
         public Dictionary<int, TranslationStringReference> NamedLines { get; } = new Dictionary<int, TranslationStringReference>();
+
+        private class StringOperation
+        {
+            public int line;
+            public int startColumn;
+            public int endColumn;
+            public Brush colorToApply;
+            public TranslationStringReference tag;
+
+            public StringOperation(int line, int startColumn, int endColumn, Brush colorToApply, TranslationStringReference tag)
+            {
+                this.line = line;
+                this.startColumn = startColumn;
+                this.endColumn = endColumn;
+                this.colorToApply = colorToApply;
+                this.tag = tag;
+            }
+        }
 
         public void BuildDocument(RichTextBox rtb, ToolTip tt, Action<int> progress)
         {
@@ -54,111 +74,109 @@ namespace TransDiffer.Model
                 rtb.Document = cachedDocument;
                 return;
             }
-#if false
 
-            var block = new Section();
+            var lines = System.IO.File.ReadAllLines(File.FullName);
 
-            progress(0);
-            for (var i = 0; i < Content.Length; i++)
-            {
-                var line = Content[i];
-                Paragraph para;
-                var ll = NamedLines.TryGetValue(i, out var sl) ? sl : null;
-                if (ll != null)
-                {
-                    para = ll.GetFormattedParagraph(tt);
-                }
-                else
-                {
-                    para = new Paragraph(new Run(line));
-                }
-                para.Margin = new Thickness();
-                block.Blocks.Add(para);
-                progress(i * 100 / (Content.Length - 1));
-            }
+            var TextBrush = new SolidColorBrush(Color.FromRgb(200, 255, 200));
+            var IdBrush = new SolidColorBrush(Color.FromRgb(160, 255, 160));
+            var IdBrushMissing = new SolidColorBrush(Color.FromRgb(255, 180, 140));
 
-            cachedDocument = new FlowDocument(block) { FontFamily = new FontFamily("Courier New") };
-#endif
-
-            cachedDocument = new FlowDocument();
-            rtb.Document = cachedDocument;
-            cachedDocument.FontFamily = new FontFamily("Courier New");
-
-            var range = new TextRange(cachedDocument.ContentStart, cachedDocument.ContentEnd);
-            var fstream = new FileStream(File.FullName, FileMode.Open);
-            
-            range.Load(fstream, DataFormats.Text);
-            range.ApplyPropertyValue(Block.MarginProperty, new Thickness());
-
-            var firstLine = cachedDocument.ContentStart.GetLineStartPosition(0);
-
+            List< StringOperation> operations = new List<StringOperation>();
             foreach (var line in NamedLines.Values)
             {
-                if (line.IdentifierToken != null && line.IdentifierToken.CompareTo(line.TextValueToken) > 0)
+                if (line.IdentifierToken != null)
                 {
-                    SetColorIdentifier(firstLine, line);
+                    var brush = line.String.MissingInLanguages.Count > 0 ? IdBrushMissing : IdBrush;
+                    int line0 = line.IdentifierToken.Context.Line-1;
+                    int col0 = line.IdentifierToken.Context.Column-1;
+                    int line1 = line.IdentifierToken.ContextEnd.Line-1;
+                    int col1 = line.IdentifierToken.ContextEnd.Column-1;
+                    if (line0 == line1)
+                    {
+                        operations.Add(new StringOperation(line0, col0, col1, brush, line));
+                    }
+                    else
+                    {
+                        var colT = lines[line0].Length;
+                        operations.Add(new StringOperation(line0, col0, colT, brush, line));
+                        for(int i=line0+1;i<line1;i++)
+                        {
+                            colT = lines[i].Length;
+                            operations.Add(new StringOperation(i, 0, colT, brush, line));
+                        }
+                        operations.Add(new StringOperation(line1, 0, col1, brush, line));
+                    }
                 }
 
                 if (line.TextValueToken != null)
                 {
-                    SetColorText(firstLine, line);
+                    var brush = TextBrush;
+                    int line0 = line.TextValueToken.Context.Line-1;
+                    int col0 = line.TextValueToken.Context.Column-1;
+                    int line1 = line.TextValueToken.ContextEnd.Line-1;
+                    int col1 = line.TextValueToken.ContextEnd.Column-1;
+                    if (line0 == line1)
+                    {
+                        operations.Add(new StringOperation(line0, col0, col1, brush, line));
+                    }
+                    else
+                    {
+                        var colT = lines[line0].Length;
+                        operations.Add(new StringOperation(line0, col0, colT, brush, line));
+                        for (int i = line0 + 1; i < line1; i++)
+                        {
+                            colT = lines[i].Length;
+                            operations.Add(new StringOperation(i, 0, colT, brush, line));
+                        }
+                        operations.Add(new StringOperation(line1, 0, col1, brush, line));
+                    }
                 }
+            }
 
-                if (line.IdentifierToken != null && line.IdentifierToken.CompareTo(line.TextValueToken) < 0)
+            operations.Sort((a,b) => {
+                int t = a.line.CompareTo(b.line);
+                if (t != 0) return t;
+                return a.startColumn.CompareTo(b.startColumn);
+            });
+            
+            cachedDocument = new FlowDocument();
+            rtb.Document = cachedDocument;
+            cachedDocument.FontFamily = new FontFamily("Courier New");
+
+            var section = new Section();
+            cachedDocument.Blocks.Add(section);
+
+            int j = 0;
+            for(int i=0;i<lines.Length;i++)
+            {
+                var tags = new SourceInfo() { File = File, Line = i + 1 };
+                var para = new Paragraph()
                 {
-                    SetColorIdentifier(firstLine, line);
+                    Margin = new Thickness(),
+                    Tag = tags
+                };
+                var ln = lines[i];
+                int col = 0;
+                int end = ln.Length;
+                while(j < operations.Count && operations[j].line == i)
+                {
+                    var op = operations[j++];
+                    if (op.startColumn > col)
+                    {
+                        para.Inlines.Add(new Run(ln.Substring(col, op.startColumn - col)));
+                    }
+
+                    para.Inlines.Add(new Run(ln.Substring(op.startColumn, op.endColumn - op.startColumn)) { Background = op.colorToApply });
+                    col = op.endColumn;
+                    tags.Strings.Add(op.tag);
                 }
-            }
-        }
 
-        private void SetColorText(TextPointer firstLine, TranslationStringReference line)
-        {
-            var TextBrush = new SolidColorBrush(Color.FromRgb(200, 255, 200));
+                if (end > col)
+                {
+                    para.Inlines.Add(new Run(ln.Substring(col, end - col)));
+                }
 
-            var start = firstLine
-                .GetLineStartPosition(line.TextValueToken.Context.Line - 1)
-                .GetPositionAtOffset(line.TextValueToken.Context.Column);
-            var end = firstLine
-                .GetLineStartPosition(line.TextValueToken.ContextEnd.Line - 1)
-                .GetPositionAtOffset(line.TextValueToken.ContextEnd.Column);
-            if (end == null)
-            {
-                end = cachedDocument.ContentEnd;
-            }
-            var range = new TextRange(start, end);
-            range.ApplyPropertyValue(TextElement.BackgroundProperty, TextBrush);
-
-            SetParagraphInfo(line, start, end);
-        }
-
-        private void SetColorIdentifier(TextPointer firstLine, TranslationStringReference line)
-        {
-            var IdBrush = new SolidColorBrush(Color.FromRgb(160, 255, 160));
-            var IdBrushMissing = new SolidColorBrush(Color.FromRgb(255, 140, 140));
-
-            var start = firstLine
-                .GetLineStartPosition(line.IdentifierToken.Context.Line - 1)
-                .GetPositionAtOffset(line.IdentifierToken.Context.Column);
-            var end = firstLine
-                .GetLineStartPosition(line.IdentifierToken.ContextEnd.Line - 1)
-                .GetPositionAtOffset(line.IdentifierToken.ContextEnd.Column);
-            if (end == null)
-            {
-                end = cachedDocument.ContentEnd;
-            }
-            var range = new TextRange(start, end);
-            range.ApplyPropertyValue(TextElement.BackgroundProperty, line.String.MissingInLanguages.Count > 0 ? IdBrushMissing : IdBrush);
-
-            SetParagraphInfo(line, start, end);
-        }
-
-        private static void SetParagraphInfo(TranslationStringReference line, TextPointer start, TextPointer end)
-        {
-            var startOfLine = start.GetLineStartPosition(0);
-            while (startOfLine.GetOffsetToPosition(end) > 0)
-            {
-                startOfLine.Paragraph.Tag = line;
-                startOfLine = startOfLine.GetLineStartPosition(1);
+                section.Blocks.Add(para);
             }
         }
 
