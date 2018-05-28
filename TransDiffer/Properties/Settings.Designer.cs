@@ -34,5 +34,41 @@ namespace TransDiffer.Properties {
                 this["WorkspaceFolder"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string ExternalEditorPath {
+            get {
+                return ((string)(this["ExternalEditorPath"]));
+            }
+            set {
+                this["ExternalEditorPath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string ExternalEditorCommandLineStyle {
+            get {
+                return ((string)(this["ExternalEditorCommandLineStyle"]));
+            }
+            set {
+                this["ExternalEditorCommandLineStyle"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string ExternalEditorCommandLinePattern {
+            get {
+                return ((string)(this["ExternalEditorCommandLinePattern"]));
+            }
+            set {
+                this["ExternalEditorCommandLinePattern"] = value;
+            }
+        }
     }
 }

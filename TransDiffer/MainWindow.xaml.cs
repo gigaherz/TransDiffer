@@ -7,8 +7,13 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using TransDiffer.Annotations;
+using TransDiffer.Model;
+using TransDiffer.Parser.Structure;
 using TransDiffer.Properties;
 
 namespace TransDiffer
@@ -46,6 +51,32 @@ namespace TransDiffer
         public bool IsByFile => TemplateName == "ByFileTemplate";
         public bool IsById => TemplateName == "ByIdTemplate";
 
+        public bool IsScanningAllowed
+        {
+            get { return _isScanningAllowed; }
+            set
+            {
+                if (value == _isScanningAllowed) return;
+                _isScanningAllowed = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public Action CancelScanning = null;
+
+        public bool CanCancel
+        {
+            get { return _canCancel; }
+            set
+            {
+                if (value == _canCancel) return;
+                _canCancel = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private string _externalEditorPath;
+        private string _externalEditorCommandLinePattern;
         public MainWindow()
         {
             ShowInExplorerCommand = new RelayCommand(ShowInExplorer_OnClick);
@@ -59,6 +90,11 @@ namespace TransDiffer
                 TemplateName = "ByIdTemplate";
             });
 
+
+            var cfg = new Settings();
+            _externalEditorPath = cfg.ExternalEditorPath;
+            _externalEditorCommandLinePattern = ExternalEditorDialog.NameToPattern(cfg.ExternalEditorCommandLineStyle, cfg.ExternalEditorCommandLinePattern);
+
             InitializeComponent();
         }
 
@@ -70,28 +106,52 @@ namespace TransDiffer
 
         public void ScanFolder(string browsePath)
         {
+            IsScanningAllowed = false;
             Folders.Clear();
-            RunInWorker(progress => ScanFolder(browsePath, progress), () =>
+            CancelScanning = RunInWorker((progress, cancellationPending, setCancelled) => ScanFolder(browsePath, progress, cancellationPending, setCancelled), (cancelled) =>
             {
-                var c = Folders.Count(f => f.HasErrors);
-                if (c > 0)
-                    StatusLabel.Text = $"Done. {c} folders have langauges with missing or obsolete strings.";
+                if (cancelled)
+                {
+                    StatusLabel.Text = "Cancelled.";
+                    LoadingProgress.Value = 0;
+                }
                 else
-                    StatusLabel.Text = "Done. No missing or obsolete strings found.";
+                {
+                    var c = Folders.Count(f => f.HasErrors);
+                    if (c > 0)
+                        StatusLabel.Text = $"Done. {c} folders have langauges with missing or obsolete strings.";
+                    else
+                        StatusLabel.Text = "Done. No missing or obsolete strings found.";
+                }
+                IsScanningAllowed = true;
+                CanCancel = false;
+                CancelScanning = null;
             });
+            CanCancel = true;
         }
 
-        public void RunInWorker(Action<Action<int>> task, Action completion)
+        private bool _isScanningAllowed;
+        private bool _canCancel;
+
+        public Action RunInWorker(Action<Action<int>, Func<bool>, Action> task, Action<bool> completion)
         {
+            bool wasCancelled = false;
+            var setCancelled = new Action(() => { wasCancelled = true; });
+
             var worker = new BackgroundWorker();
-            worker.DoWork += (sender, args) => task(worker.ReportProgress);
+            worker.DoWork += (sender, args) => task(worker.ReportProgress, () => worker.CancellationPending, setCancelled);
             worker.WorkerReportsProgress = true;
             worker.ProgressChanged += (sender, args) => LoadingProgress.Value = args.ProgressPercentage;
-            worker.RunWorkerCompleted += (sender, args) => completion();
+            worker.WorkerSupportsCancellation = true;
+            worker.RunWorkerCompleted += (sender, args) =>
+            {
+                completion(wasCancelled);
+            };
             worker.RunWorkerAsync();
+            return () => worker.CancelAsync();
         }
 
-        public void ScanFolder(string path, Action<int> progress)
+        public void ScanFolder(string path, Action<int> progress, Func<bool> cancellationPending, Action setCancelled)
         {
             var dir = new DirectoryInfo(path);
 
@@ -100,14 +160,19 @@ namespace TransDiffer
             var dirs = dir.GetDirectories();
             for (var i = 0; i < dirs.Length; i++)
             {
+                if (cancellationPending())
+                {
+                    setCancelled();
+                    return;
+                }
                 var subdir = dirs[i];
                 var minPercent = i * 100 / (dirs.Length - 1);
                 var maxPercent = (i + 1) * 100 / (dirs.Length - 1);
-                ScanSubfolder(subdir, progress, minPercent, maxPercent);
+                ScanSubfolder(subdir, progress, cancellationPending, setCancelled, minPercent, maxPercent);
             }
         }
 
-        private void ScanSubfolder(DirectoryInfo dir, Action<int> progress, int minPercent, int maxPercent)
+        private void ScanSubfolder(DirectoryInfo dir, Action<int> progress, Func<bool> cancellationPending, Action setCancelled, int minPercent, int maxPercent)
         {
             progress(minPercent);
 
@@ -124,10 +189,15 @@ namespace TransDiffer
                 var dirs = dir.GetDirectories();
                 for (var i = 0; i < dirs.Length; i++)
                 {
+                    if (cancellationPending())
+                    {
+                        setCancelled();
+                        return;
+                    }
                     var subdir = dirs[i];
                     var minPercent1 = minPercent + i * (maxPercent - minPercent) / dirs.Length;
                     var maxPercent1 = minPercent + (i + 1) * (maxPercent - minPercent) / dirs.Length;
-                    ScanSubfolder(subdir, progress, minPercent1, maxPercent1);
+                    ScanSubfolder(subdir, progress, cancellationPending, setCancelled, minPercent1, maxPercent1);
                 }
             }
         }
@@ -162,8 +232,9 @@ namespace TransDiffer
                         StatusLabel.Text = "Done.";
                     });
 #else
-                FileContents.Document = f.BuildDocument(MissingLangs, _ => { });
+                f.BuildDocument(FileContents, MissingLangs, _ => { });
 #endif
+                FileContents_OnSelectionChanged(FileContents, new RoutedEventArgs(e.RoutedEvent));
             }
         }
 
@@ -207,6 +278,77 @@ namespace TransDiffer
 
                 ScanFolder(browsePath);
             }
+        }
+
+        private void Hyperlink_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (CanCancel)
+                CancelScanning?.Invoke();
+        }
+
+        private void FileContents_OnSelectionChanged(object sender, RoutedEventArgs e)
+        {
+            var cp = FileContents.CaretPosition;
+            var p = cp.Paragraph;
+            if (p?.Tag is TranslationStringReference str)
+            {
+                DetailsPane.Document = str.String.CreateDetailsDocument();
+            }
+            else if (FoldersTree.SelectedItem is LangFile f)
+            {
+                DetailsPane.Document = f.CreateDetailsDocument();
+            }
+            else
+            {
+                DetailsPane.Document = new FlowDocument();
+            }
+        }
+
+        private void ExternalEditorMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var cfg = new Settings();
+            var dialog = new ExternalEditorDialog
+            {
+                Owner = this,
+                ExternalEditorPath = cfg.ExternalEditorPath,
+                CommandLineStyle = cfg.ExternalEditorCommandLineStyle
+            };
+            if (dialog.CommandLineStyle == "Custom")
+                dialog.CommandLinePattern = cfg.ExternalEditorCommandLinePattern;
+            if (dialog.ShowDialog() == true)
+            {
+                cfg.ExternalEditorPath = dialog.ExternalEditorPath;
+                cfg.ExternalEditorCommandLineStyle = dialog.CommandLineStyle;
+                cfg.ExternalEditorCommandLinePattern = dialog.CommandLinePattern;
+                cfg.Save();
+
+                _externalEditorPath = cfg.ExternalEditorPath;
+                _externalEditorCommandLinePattern = ExternalEditorDialog.NameToPattern(cfg.ExternalEditorCommandLineStyle, cfg.ExternalEditorCommandLinePattern);
+            }
+        }
+
+        private void FileContents_OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            var cp = FileContents.CaretPosition;
+            if (cp.Paragraph.Tag is TranslationStringReference r)
+            {
+                var cmdline = _externalEditorCommandLinePattern
+                    .Replace("$file$", r.Source.File.FullName)
+                    .Replace("$line$", r.Context.Line.ToString());
+                Process p = new Process();
+                p.StartInfo = new ProcessStartInfo(_externalEditorPath, cmdline);
+                p.Start();
+            }
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            FileContents.Selection.ApplyPropertyValue(TextElement.BackgroundProperty, Brushes.Red);
+        }
+
+        private void Button_Click_1(object sender, RoutedEventArgs e)
+        {
+            FileContents.Selection.ApplyPropertyValue(TextElement.BackgroundProperty, Brushes.Pink);
         }
     }
 }

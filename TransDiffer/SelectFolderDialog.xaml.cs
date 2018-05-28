@@ -44,6 +44,7 @@ namespace TransDiffer
             CommonOpenFileDialog dialog = new CommonOpenFileDialog
             {
                 InitialDirectory = Directory.Exists(WorkspaceFolder) ? WorkspaceFolder : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                EnsurePathExists = true,
                 IsFolderPicker = true
             };
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok)

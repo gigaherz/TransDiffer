@@ -1,8 +1,8 @@
-using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
+using TransDiffer.Parser;
+using TransDiffer.Parser.Structure;
 
-namespace TransDiffer
+namespace TransDiffer.Model
 {
     public class SubLang
     {
@@ -12,38 +12,26 @@ namespace TransDiffer
 
         public Dictionary<string, TranslationStringReference> NamedStrings { get; } = new Dictionary<string, TranslationStringReference>();
 
-        public TranslationStringReference AddNamedString(Match match, string lang, LangFile file, int lineNumber, ref int unnamedCount, string idPrefix, Match contextMatch = null)
+        public TranslationStringReference AddNamedString(string prefix, LangFile file, ExpressionValue identifier, Token valueToken, ParsingContext context, ref int unnamedCount, string clang)
         {
-            var sl = CreateNamedString(match, lang, file, lineNumber, ref unnamedCount, idPrefix, contextMatch);
+            var sl = CreateNamedString(prefix, file, identifier, valueToken, context, ref unnamedCount, clang);
             NamedStrings.Add(sl.Id, sl);
-            file.NamedLines.Add(lineNumber, sl);
+            if(!file.ContainedLangs.Contains(this))
+                file.ContainedLangs.Add(this);
+            file.NamedLines.Add(context.Line, sl);
             return sl;
         }
 
-        public TranslationStringReference CreateNamedString(Match match, string lang, LangFile file, int lineNumber, ref int unnamedCount, string idPrefix, Match contextMatch = null)
+        public TranslationStringReference CreateNamedString(string _prefix, LangFile file, ExpressionValue identifier, Token valueToken, ParsingContext context, ref int unnamedCount, string clang)
         {
-            var prefix = idPrefix.Length > 0 ? idPrefix + "_" : "";
-            var id = match.Groups["id"].Value;
+            var prefix = _prefix.Length > 0 ? _prefix + "_" : "";
+            var id = identifier?.Process();
             var idNumbered = id;
 
-            if (string.IsNullOrEmpty(id) || id == "-1" || id == "IDC_STATIC" || !match.Groups["id"].Success)
+            if (string.IsNullOrEmpty(id) || id == "-1" || id == "IDC_STATIC")
             {
-                if (contextMatch == null)
-                {
-                    id = $"UNNAMED_{id}_{unnamedCount++}";
-                    idNumbered = $"{prefix}{id}#0";
-                }
-                else
-                {
-                    id = contextMatch.Groups["id"].Value;
-                    idNumbered = $"{id}";
-
-                    if (string.IsNullOrEmpty(id) || id == "-1" || id == "IDC_STATIC" || !contextMatch.Groups["id"].Success)
-                    {
-                        id = $"UNNAMED_{id}_{unnamedCount++}";
-                        idNumbered = $"{prefix}{id}#0";
-                    }
-                }
+                id = $"UNNAMED_{id}_{unnamedCount++}";
+                idNumbered = $"{prefix}{id}#0";
             }
 
             int number = 0;
@@ -53,7 +41,7 @@ namespace TransDiffer
                 idNumbered = $"{prefix}{id}#{number}";
             }
 
-            return new TranslationStringReference() { Id = idNumbered, Language = lang, Source = file, LineNumber = lineNumber, RegexMatch = match };
+            return new TranslationStringReference() { Id = idNumbered, Language = clang, Source = file, Context = context, IdentifierToken = identifier, TextValueToken = valueToken };
         }
     }
 }

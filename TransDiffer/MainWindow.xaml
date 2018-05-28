@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TransDiffer"
-        xmlns:model="clr-namespace:TransDiffer"
+        xmlns:model="clr-namespace:TransDiffer.Model"
         mc:Ignorable="d"
         Title="MainWindow" Height="1157.601" Width="1704.128" ResizeMode="CanResizeWithGrip"
         Background="{x:Static SystemColors.ControlBrush}"
@@ -20,6 +20,8 @@
             <MenuItem Header="Open" Command="{Binding OpenLangFileCommand, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" CommandParameter="{Binding .}"></MenuItem>
             <MenuItem Header="Show in Explorer" Command="{Binding ShowInExplorerCommand, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" CommandParameter="{Binding .}"></MenuItem>
         </ContextMenu>
+        
+        <BooleanToVisibilityConverter x:Key="B2V" />
 
         <HierarchicalDataTemplate x:Key="ByFileTemplate" ItemsSource="{Binding Files}" DataType="{x:Type model:ComponentFolder}">
             <HierarchicalDataTemplate.ItemTemplate>
@@ -56,7 +58,7 @@
                 </HierarchicalDataTemplate>
             </HierarchicalDataTemplate.ItemTemplate>
             <TextBlock Text="{Binding Name}" Background="{Binding Background}"></TextBlock>
-        </HierarchicalDataTemplate>        
+        </HierarchicalDataTemplate>
     </Window.Resources>
     <DockPanel>
         <Menu DockPanel.Dock="Top">
@@ -64,14 +66,15 @@
                 <MenuItem Header="Exit" />
             </MenuItem>
             <MenuItem Header="Workspace">
-                <MenuItem Header="Change Folder" Click="ChangeWorkspace_Click" />
-                <MenuItem Header="Rescan" />
+                <MenuItem Header="Change Folder" IsEnabled="{Binding IsScanningAllowed}" Click="ChangeWorkspace_Click" />
+                <MenuItem Header="Rescan" IsEnabled="{Binding IsScanningAllowed}" />
             </MenuItem>
             <MenuItem Header="View">
                 <MenuItem Header="By File" IsCheckable="True" IsChecked="{Binding IsByFile, Mode=OneWay}" Command="{Binding ByFileCommand}" />
                 <MenuItem Header="By ID" IsCheckable="True" IsChecked="{Binding IsById, Mode=OneWay}" Command="{Binding ByIdCommand}" />
             </MenuItem>
             <MenuItem Header="Options">
+                <MenuItem Header="External Editor..." Click="ExternalEditorMenuItem_Click"></MenuItem>
                 <MenuItem Header="TODO" />
             </MenuItem>
             <MenuItem Header="Help">
@@ -83,7 +86,12 @@
                 <ProgressBar x:Name="LoadingProgress" Width="120" MinHeight="18" VerticalAlignment="Stretch"></ProgressBar>
             </StatusBarItem>
             <StatusBarItem>
-                <TextBlock x:Name="StatusLabel" Text="Loading..." />
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="StatusLabel" Text="Loading..." />
+                    <TextBlock Visibility="{Binding CanCancel, Converter={StaticResource B2V}}">
+                        <Hyperlink Click="Hyperlink_OnClick">Cancel</Hyperlink>
+                    </TextBlock>
+                </StackPanel>
             </StatusBarItem>
         </StatusBar>
         <Grid>
@@ -107,6 +115,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,8">
                     <StackPanel.Resources>
@@ -140,7 +149,7 @@
                         </Button.Content>
                     </Button>
                     <Grid Width="12"></Grid>
-                    <Button>
+                    <Button Click="Button_Click">
                         <Button.Content>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -152,7 +161,7 @@
                             </Grid>
                         </Button.Content>
                     </Button>
-                    <Button>
+                    <Button Click="Button_Click_1">
                         <Button.Content>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -165,7 +174,13 @@
                         </Button.Content>
                     </Button>
                 </StackPanel>
-                <RichTextBox x:Name="FileContents" Grid.Column="1" Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <RichTextBox x:Name="FileContents" Grid.Column="1" Grid.Row="1" VerticalScrollBarVisibility="Auto" 
+                             IsReadOnly="true" IsReadOnlyCaretVisible="True" SelectionChanged="FileContents_OnSelectionChanged"
+                             MouseDoubleClick="FileContents_OnMouseDoubleClick">
+                </RichTextBox>
+                <RichTextBox x:Name="DetailsPane" Grid.Row="2" Margin="0,5,0,0" 
+                             MaxHeight="500"
+                             BorderBrush="Transparent" BorderThickness="0" IsReadOnly="true" IsReadOnlyCaretVisible="False" Background="Transparent">
                 </RichTextBox>
             </Grid>
         </Grid>

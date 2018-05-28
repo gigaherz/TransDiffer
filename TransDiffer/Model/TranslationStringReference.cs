@@ -1,18 +1,14 @@
-﻿using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
+﻿using TransDiffer.Parser;
+using TransDiffer.Parser.Structure;
 
-namespace TransDiffer
+namespace TransDiffer.Model
 {
     public class TranslationStringReference
     {
         public LangFile Source { get; set; }
-        public int LineNumber { get; set; }
-        public Match RegexMatch { get; set; }
+        public ParsingContext Context { get; set; }
+        public ExpressionValue IdentifierToken { get; set; }
+        public Token TextValueToken { get; set; }
 
         public string Id { get; set; }
         public string Language { get; set; }
@@ -22,9 +18,10 @@ namespace TransDiffer
 
         public override string ToString()
         {
-            return $"{{{RegexMatch.Groups["text"].Value}}}";
+            return $"{{{IdentifierToken.Process()}={Lexer.UnescapeString(TextValueToken)}}}";
         }
 
+#if false
         public Paragraph GetFormattedParagraph(ToolTip tt)
         {
             var LineBrush = new SolidColorBrush(Color.FromRgb(245, 255, 245));
@@ -37,6 +34,7 @@ namespace TransDiffer
             var text = RegexMatch.Groups["text"];
 
             var para = new Paragraph { Background = LineBrush };
+            para.Tag = this;
 
             if (!id.Success)
             {
@@ -104,5 +102,6 @@ namespace TransDiffer
 
             return para;
         }
+#endif
     }
 }

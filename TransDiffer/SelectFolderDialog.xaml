@@ -8,6 +8,7 @@
         ResizeMode="CanMinimize"
         SizeToContent="WidthAndHeight" MinWidth="450"
         Title="Select Workspace"
+        WindowStartupLocation="CenterOwner"
         Background="{x:Static SystemColors.ControlBrush}" DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <Grid>
         <Grid.RowDefinitions>
