@@ -180,7 +180,7 @@ namespace TransDiffer
             var enus = dir.GetFiles("en-US.rc");
             if (enus.Length > 0)
             {
-                if (!dir.FullName.Replace("\\","/").Contains("/getuname/"))
+                if (!dir.FullName.Replace("\\", "/").Contains("/getuname/"))
                 {
                     LoadLangs(dir);
                 }
@@ -324,16 +324,39 @@ namespace TransDiffer
             var cp = FileContents.CaretPosition;
             if (cp.Paragraph.Tag is SourceInfo r)
             {
-                var cmdline = _externalEditorCommandLinePattern
-                    .Replace("$file$", r.File.FullName)
-                    .Replace("$line$", r.Line.ToString());
-                Process p = new Process();
-                p.StartInfo = new ProcessStartInfo(_externalEditorPath, cmdline);
-                p.Start();
+                if (!TryLaunchExternalEditor(r))
+                {
+                    if (OpenExternalEditorDialog())
+                    {
+                        if (!TryLaunchExternalEditor(r))
+                        {
+                            MessageBox.Show("Could not launch external editor", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                }
             }
         }
 
+        private bool TryLaunchExternalEditor(SourceInfo r)
+        {
+            if (File.Exists(_externalEditorPath))
+            {
+                var cmdline = _externalEditorCommandLinePattern
+                    .Replace("$file$", r.File.FullName)
+                    .Replace("$line$", r.Line.ToString());
+                var p = new Process { StartInfo = new ProcessStartInfo(_externalEditorPath, cmdline) };
+                return p.Start();
+            }
+
+            return false;
+        }
+
         private void ExternalEditorMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            OpenExternalEditorDialog();
+        }
+
+        private bool OpenExternalEditorDialog()
         {
             var cfg = new Settings();
             var dialog = new ExternalEditorDialog
@@ -352,7 +375,136 @@ namespace TransDiffer
                 cfg.Save();
 
                 _externalEditorPath = cfg.ExternalEditorPath;
-                _externalEditorCommandLinePattern = ExternalEditorDialog.NameToPattern(cfg.ExternalEditorCommandLineStyle, cfg.ExternalEditorCommandLinePattern);
+                _externalEditorCommandLinePattern = ExternalEditorDialog.NameToPattern(cfg.ExternalEditorCommandLineStyle,
+                    cfg.ExternalEditorCommandLinePattern);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var cp = FileContents.CaretPosition;
+                if (cp.Paragraph.Tag is SourceInfo r)
+                {
+                    bool hadToLoop = r.Strings.Count == 0;
+                    while (r.Strings.Count == 0)
+                    {
+                        if (r.Next == null)
+                            return;
+
+                        r = r.Next;
+                    }
+                    var str = r.Strings.Last();
+                    if (!hadToLoop) str = str.Next;
+                    if (str == null)
+                        return;
+                    FileContents.Selection.Select(str.Paragraphs.First().ContentStart, str.Paragraphs.Last().ContentEnd);
+                }
+            }
+            finally
+            {
+                FileContents.Focus();
+            }
+        }
+
+        private void Button_Click_1(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var cp = FileContents.CaretPosition;
+                if (cp.Paragraph.Tag is SourceInfo r)
+                {
+                    bool hadToLoop = r.Strings.Count == 0;
+                    while (r.Strings.Count == 0)
+                    {
+                        if (r.Previous == null)
+                            return;
+
+                        r = r.Previous;
+                    }
+                    var str = r.Strings.First();
+                    if (!hadToLoop) str = str.Previous;
+                    if (str == null)
+                        return;
+                    FileContents.Selection.Select(str.Paragraphs.First().ContentStart, str.Paragraphs.Last().ContentEnd);
+                }
+            }
+            finally
+            {
+                FileContents.Focus();
+            }
+        }
+
+        private void Button_Click_2(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var cp = FileContents.CaretPosition;
+                if (cp.Paragraph.Tag is SourceInfo r)
+                {
+                    bool hadToLoop = r.Strings.Count == 0;
+                    while (r.Strings.Count == 0)
+                    {
+                        if (r.Previous == null)
+                            return;
+
+                        r = r.Previous;
+                    }
+                    var str = r.Strings.First();
+                    if (!hadToLoop) str = str.Previous;
+                    if (str == null)
+                        return;
+                    while (str.String.MissingInLanguages.Count == 0)
+                    {
+                        if (str.Previous == null)
+                            return;
+                        str = str.Previous;
+                    }
+                    FileContents.Selection.Select(str.Paragraphs.First().ContentStart, str.Paragraphs.Last().ContentEnd);
+                }
+            }
+            finally
+            {
+                FileContents.Focus();
+            }
+        }
+
+        private void Button_Click_3(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var cp = FileContents.CaretPosition;
+                if (cp.Paragraph.Tag is SourceInfo r)
+                {
+                    bool hadToLoop = r.Strings.Count == 0;
+                    while (r.Strings.Count == 0)
+                    {
+                        if (r.Next == null)
+                            return;
+
+                        r = r.Next;
+                    }
+                    var str = r.Strings.Last();
+                    if (!hadToLoop) str = str.Next;
+                    if (str == null)
+                        return;
+                    while (str.String.MissingInLanguages.Count == 0)
+                    {
+                        if (str.Next == null)
+                            return;
+                        str = str.Next;
+                    }
+                    FileContents.Selection.Select(str.Paragraphs.First().ContentStart, str.Paragraphs.Last().ContentEnd);
+                }
+            }
+            finally
+            {
+                FileContents.Focus();
             }
         }
     }

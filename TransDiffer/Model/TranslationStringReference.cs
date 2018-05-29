@@ -1,4 +1,6 @@
-﻿using TransDiffer.Parser;
+﻿using System.Collections.Generic;
+using System.Windows.Documents;
+using TransDiffer.Parser;
 using TransDiffer.Parser.Structure;
 
 namespace TransDiffer.Model
@@ -15,6 +17,11 @@ namespace TransDiffer.Model
 
         // Results of the comparison
         public TranslationString String { get; set; }
+
+        public List<Paragraph> Paragraphs { get; } = new List<Paragraph>();
+
+        public TranslationStringReference Previous { get; set; }
+        public TranslationStringReference Next { get; set; }
 
         public override string ToString()
         {

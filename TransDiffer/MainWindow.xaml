@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:TransDiffer"
         xmlns:model="clr-namespace:TransDiffer.Model"
         mc:Ignorable="d"
-        Title="MainWindow" Height="1157.601" Width="1704.128" ResizeMode="CanResizeWithGrip"
+        Title="MainWindow" Height="600" Width="800" ResizeMode="CanResizeWithGrip"
         Background="{x:Static SystemColors.ControlBrush}"
         DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <Window.Resources>
@@ -20,7 +20,7 @@
             <MenuItem Header="Open" Command="{Binding OpenLangFileCommand, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" CommandParameter="{Binding .}"></MenuItem>
             <MenuItem Header="Show in Explorer" Command="{Binding ShowInExplorerCommand, Mode=OneWay, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}" CommandParameter="{Binding .}"></MenuItem>
         </ContextMenu>
-        
+
         <BooleanToVisibilityConverter x:Key="B2V" />
 
         <HierarchicalDataTemplate x:Key="ByFileTemplate" ItemsSource="{Binding Files}" DataType="{x:Type model:ComponentFolder}">
@@ -87,7 +87,7 @@
             </StatusBarItem>
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock x:Name="StatusLabel" Text="Loading..." />
+                    <TextBlock x:Name="StatusLabel" Text="Loading... " />
                     <TextBlock Visibility="{Binding CanCancel, Converter={StaticResource B2V}}">
                         <Hyperlink Click="Hyperlink_OnClick">Cancel</Hyperlink>
                     </TextBlock>
@@ -124,7 +124,7 @@
                             <Setter Property="Padding" Value="4" />
                         </Style>
                     </StackPanel.Resources>
-                    <Button>
+                    <Button Click="Button_Click_1">
                         <Button.Content>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -136,7 +136,7 @@
                             </Grid>
                         </Button.Content>
                     </Button>
-                    <Button>
+                    <Button Click="Button_Click">
                         <Button.Content>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -149,7 +149,7 @@
                         </Button.Content>
                     </Button>
                     <Grid Width="12"></Grid>
-                    <Button>
+                    <Button Click="Button_Click_2">
                         <Button.Content>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -161,7 +161,7 @@
                             </Grid>
                         </Button.Content>
                     </Button>
-                    <Button>
+                    <Button Click="Button_Click_3">
                         <Button.Content>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -174,7 +174,7 @@
                         </Button.Content>
                     </Button>
                 </StackPanel>
-                <RichTextBox x:Name="FileContents" Grid.Column="1" Grid.Row="1" VerticalScrollBarVisibility="Auto" 
+                <RichTextBox x:Name="FileContents" Grid.Column="1" Grid.Row="1" VerticalScrollBarVisibility="Auto" IsInactiveSelectionHighlightEnabled="True"
                              IsReadOnly="true" IsReadOnlyCaretVisible="True" SelectionChanged="FileContents_OnSelectionChanged"
                              MouseDoubleClick="FileContents_OnMouseDoubleClick">
                 </RichTextBox>

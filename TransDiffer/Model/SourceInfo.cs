@@ -8,5 +8,7 @@ namespace TransDiffer.Model
         public FileInfo File { get; set; }
         public int Line { get; set; }
         public HashSet<TranslationStringReference> Strings { get; } = new HashSet<TranslationStringReference>();
+        public SourceInfo Previous { get; set; }
+        public SourceInfo Next { get; set; }
     }
 }

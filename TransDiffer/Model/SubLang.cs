@@ -11,11 +11,13 @@ namespace TransDiffer.Model
         public string Name { get; set; }
 
         public Dictionary<string, TranslationStringReference> NamedStrings { get; } = new Dictionary<string, TranslationStringReference>();
+        public List<TranslationStringReference> References { get; } = new List<TranslationStringReference>();
 
         public TranslationStringReference AddNamedString(string prefix, LangFile file, ExpressionValue identifier, Token valueToken, ParsingContext context, ref int unnamedCount, string clang)
         {
             var sl = CreateNamedString(prefix, file, identifier, valueToken, context, ref unnamedCount, clang);
             NamedStrings.Add(sl.Id, sl);
+            References.Add(sl);
             if(!file.ContainedLangs.Contains(this))
                 file.ContainedLangs.Add(this);
             file.NamedLines.Add(context.Line, sl);
@@ -42,6 +44,18 @@ namespace TransDiffer.Model
             }
 
             return new TranslationStringReference() { Id = idNumbered, Language = clang, Source = file, Context = context, IdentifierToken = identifier, TextValueToken = valueToken };
+        }
+
+        public void FinishLoading()
+        {
+            for (var i = 0; i < References.Count; i++)
+            {
+                var ns = References[i];
+                if (i > 0)
+                    ns.Previous = References[i - 1];
+                if (i+1 < References.Count)
+                    ns.Next = References[i + 1];
+            }
         }
     }
 }

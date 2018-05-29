@@ -42,6 +42,11 @@ namespace TransDiffer.Model
 
         public void FinishLoading()
         {
+            foreach (var containedLang in ContainedLangs)
+            {
+                containedLang.FinishLoading();
+            }
+
             IsExpanded = HasErrors;
 
             HasErrors = Folder.NamedStrings.Any(s => s.MissingInLanguages.Intersect(ContainedLangs).Any());
@@ -146,14 +151,18 @@ namespace TransDiffer.Model
             var section = new Section();
             cachedDocument.Blocks.Add(section);
 
+            SourceInfo previousSourceInfo = null;
             int j = 0;
             for(int i=0;i<lines.Length;i++)
             {
-                var tags = new SourceInfo() { File = File, Line = i + 1 };
+                var sourceInfo = new SourceInfo() { File = File, Line = i + 1 };
+                sourceInfo.Previous = previousSourceInfo;
+                if (previousSourceInfo != null)
+                    previousSourceInfo.Next = sourceInfo;
                 var para = new Paragraph()
                 {
                     Margin = new Thickness(),
-                    Tag = tags
+                    Tag = sourceInfo
                 };
                 var ln = lines[i];
                 int col = 0;
@@ -168,7 +177,8 @@ namespace TransDiffer.Model
 
                     para.Inlines.Add(new Run(ln.Substring(op.startColumn, op.endColumn - op.startColumn)) { Background = op.colorToApply });
                     col = op.endColumn;
-                    tags.Strings.Add(op.tag);
+                    sourceInfo.Strings.Add(op.tag);
+                    op.tag.Paragraphs.Add(para);
                 }
 
                 if (end > col)
@@ -177,6 +187,7 @@ namespace TransDiffer.Model
                 }
 
                 section.Blocks.Add(para);
+                previousSourceInfo = sourceInfo;
             }
         }
 
@@ -193,7 +204,9 @@ namespace TransDiffer.Model
             {
                 if (str.MissingInLanguages.Any(s => containedLangs.Contains(s.Name)))
                 {
-                    var para = new Paragraph(new Run($"Missing {str.Name}, seen in: " + string.Join(", ", str.Translations.Select(e => $"{e.Key}({e.Value.Source.Name})")))) { Margin = new Thickness() };
+                    var list = string.Join(", ", str.Translations.Select(e => $"{e.Key}({e.Value.Source.Name})"));
+                    var para = new Paragraph() { Margin = new Thickness() };
+                    para.Inlines.Add(new Run($"Missing {str.Name}, seen in: {list}"));
                     block.Blocks.Add(para);
                 }
             }
