@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:TransDiffer"
         xmlns:model="clr-namespace:TransDiffer.Model"
         mc:Ignorable="d"
-        Title="MainWindow" Height="600" Width="800" ResizeMode="CanResizeWithGrip"
+        Title="MainWindow" Height="600" Width="1000" ResizeMode="CanResizeWithGrip"
         Background="{x:Static SystemColors.ControlBrush}"
         DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <Window.Resources>
@@ -174,11 +174,15 @@
                         </Button.Content>
                     </Button>
                 </StackPanel>
-                <RichTextBox x:Name="FileContents" Grid.Column="1" Grid.Row="1" VerticalScrollBarVisibility="Auto" IsInactiveSelectionHighlightEnabled="True"
+                <RichTextBox x:Name="FileContents" Grid.Column="1" Grid.Row="1"
+                             VerticalScrollBarVisibility="Visible"
+                             IsInactiveSelectionHighlightEnabled="True"
                              IsReadOnly="true" IsReadOnlyCaretVisible="True" SelectionChanged="FileContents_OnSelectionChanged"
                              MouseDoubleClick="FileContents_OnMouseDoubleClick">
                 </RichTextBox>
-                <RichTextBox x:Name="DetailsPane" Grid.Row="2" Margin="0,5,0,0" Visibility="{Binding ShowDetailsPane, Converter={StaticResource B2V}}"
+                <RichTextBox x:Name="DetailsPane" Grid.Row="2" Margin="0,5,0,0" 
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                             Visibility="{Binding ShowDetailsPane, Converter={StaticResource B2V}}"
                              MaxHeight="500" BorderBrush="Transparent" BorderThickness="0" IsReadOnly="true" IsReadOnlyCaretVisible="False" Background="Transparent">
                 </RichTextBox>
             </Grid>

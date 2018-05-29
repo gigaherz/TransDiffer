@@ -408,8 +408,19 @@ namespace TransDiffer
             }
             finally
             {
-                FileContents.Focus();
+                ScrollAndFocus();
             }
+        }
+
+        private void ScrollAndFocus()
+        {
+            FileContents.Focus();
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+            {
+                Rect rect = FileContents.Selection.Start.GetCharacterRect(LogicalDirection.Backward);
+                double offset = rect.Top + FileContents.VerticalOffset + (rect.Height - FileContents.ActualHeight) * 0.5;
+                FileContents.ScrollToVerticalOffset(offset);
+            }));
         }
 
         private void Button_Click_1(object sender, RoutedEventArgs e)
@@ -436,7 +447,7 @@ namespace TransDiffer
             }
             finally
             {
-                FileContents.Focus();
+                ScrollAndFocus();
             }
         }
 
@@ -470,7 +481,7 @@ namespace TransDiffer
             }
             finally
             {
-                FileContents.Focus();
+                ScrollAndFocus();
             }
         }
 
@@ -504,7 +515,7 @@ namespace TransDiffer
             }
             finally
             {
-                FileContents.Focus();
+                ScrollAndFocus();
             }
         }
     }
