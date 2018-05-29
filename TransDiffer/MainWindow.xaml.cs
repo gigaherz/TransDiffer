@@ -304,18 +304,51 @@ namespace TransDiffer
             var p = cp.Paragraph;
             if (p?.Tag is SourceInfo info && info.Strings.Count > 0)
             {
-                DetailsPane.Document = info.Strings.First().String.CreateDetailsDocument();
+                DetailsPane.Document = info.Strings.First().String.CreateDetailsDocument(NavigateToTranslation, NavigateToFile);
                 ShowDetailsPane = true;
             }
             else if (FoldersTree.SelectedItem is LangFile f)
             {
-                DetailsPane.Document = f.CreateDetailsDocument();
+                DetailsPane.Document = f.CreateDetailsDocument(NavigateToTranslation);
                 ShowDetailsPane = true;
             }
             else
             {
                 DetailsPane.Document = new FlowDocument();
                 ShowDetailsPane = false;
+            }
+        }
+
+        private void NavigateToFile(LangFile obj)
+        {
+
+            if (FoldersTree.ItemContainerGenerator.ContainerFromItem(obj.Folder) is TreeViewItem tvi0)
+            {
+                if (tvi0.ItemContainerGenerator.ContainerFromItem(obj) is TreeViewItem tvi)
+                {
+                    tvi.IsSelected = true;
+                }
+            }
+        }
+
+        private void NavigateToTranslation(TranslationStringReference obj)
+        {
+
+            if (FoldersTree.ItemContainerGenerator.ContainerFromItem(obj.Source.Folder) is TreeViewItem tvi0)
+            {
+                if (tvi0.ItemContainerGenerator.ContainerFromItem(obj.Source) is TreeViewItem tvi)
+                {
+                    tvi.IsSelected = true;
+                    Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                    {
+                        if (obj.Paragraphs.Count > 0)
+                        {
+                            FileContents.Selection.Select(obj.Paragraphs.First().ContentStart, obj.Paragraphs.Last().ContentEnd);
+
+                            ScrollAndFocus();
+                        }
+                    }));
+                }
             }
         }
 
@@ -517,6 +550,11 @@ namespace TransDiffer
             {
                 ScrollAndFocus();
             }
+        }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            ScanFolder(Root.FullName);
         }
     }
 }

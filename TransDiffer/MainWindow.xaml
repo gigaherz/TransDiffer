@@ -67,7 +67,7 @@
             </MenuItem>
             <MenuItem Header="Workspace">
                 <MenuItem Header="Change Folder" IsEnabled="{Binding IsScanningAllowed}" Click="ChangeWorkspace_Click" />
-                <MenuItem Header="Rescan" IsEnabled="{Binding IsScanningAllowed}" />
+                <MenuItem Header="Rescan" IsEnabled="{Binding IsScanningAllowed}" Click="MenuItem_Click" />
             </MenuItem>
             <MenuItem Header="View">
                 <MenuItem Header="By File" IsCheckable="True" IsChecked="{Binding IsByFile, Mode=OneWay}" Command="{Binding ByFileCommand}" />
@@ -96,13 +96,15 @@
         </StatusBar>
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*" MinWidth="240"/>
-                <ColumnDefinition Width="5*"/>
+                <ColumnDefinition Width="46*" MinWidth="240"/>
+                <ColumnDefinition Width="194*"/>
+                <ColumnDefinition Width="43*"/>
+                <ColumnDefinition Width="709*"/>
             </Grid.ColumnDefinitions>
             <TreeView Grid.Column="0"
                       x:Name="FoldersTree"
-                      ItemsSource="{Binding Folders}" SelectedItemChanged="TreeView_SelectedItemChanged" Grid.RowSpan="2" Margin="0,0,8,0"
-                      ItemTemplate="{StaticResource ByFileTemplate}">
+                      ItemsSource="{Binding Folders}" SelectedItemChanged="TreeView_SelectedItemChanged" Margin="0,0,8,0"
+                      ItemTemplate="{StaticResource ByFileTemplate}" Grid.ColumnSpan="3">
                 <TreeView.ItemContainerStyle>
                     <Style TargetType="{x:Type TreeViewItem}">
                         <Setter Property="IsExpanded" 
@@ -110,8 +112,8 @@
                     </Style>
                 </TreeView.ItemContainerStyle>
             </TreeView>
-            <GridSplitter Grid.Column="0" MinWidth="8"></GridSplitter>
-            <Grid Grid.Column="1">
+            <GridSplitter Grid.Column="2" MinWidth="8"></GridSplitter>
+            <Grid Grid.Column="3">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -177,13 +179,15 @@
                 <RichTextBox x:Name="FileContents" Grid.Column="1" Grid.Row="1"
                              VerticalScrollBarVisibility="Visible"
                              IsInactiveSelectionHighlightEnabled="True"
-                             IsReadOnly="true" IsReadOnlyCaretVisible="True" SelectionChanged="FileContents_OnSelectionChanged"
+                             IsReadOnly="true" IsDocumentEnabled="True"
+                             IsReadOnlyCaretVisible="True" SelectionChanged="FileContents_OnSelectionChanged"
                              MouseDoubleClick="FileContents_OnMouseDoubleClick">
                 </RichTextBox>
                 <RichTextBox x:Name="DetailsPane" Grid.Row="2" Margin="0,5,0,0" 
                              VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
                              Visibility="{Binding ShowDetailsPane, Converter={StaticResource B2V}}"
-                             MaxHeight="500" BorderBrush="Transparent" BorderThickness="0" IsReadOnly="true" IsReadOnlyCaretVisible="False" Background="Transparent">
+                             MaxHeight="500" BorderBrush="Transparent" BorderThickness="0" 
+                             IsReadOnly="true" IsDocumentEnabled="True" IsReadOnlyCaretVisible="False" Background="Transparent">
                 </RichTextBox>
             </Grid>
         </Grid>

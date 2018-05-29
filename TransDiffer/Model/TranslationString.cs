@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -21,6 +22,8 @@ namespace TransDiffer.Model
 
         public ObservableCollection<SubLang> MissingInLanguages { get; } = new ObservableCollection<SubLang>();
 
+        public TranslationString Parent { get; set; }
+
         public bool HasErrors { get; set; }
         public Brush Background => HasErrors ? Brushes.Pink : Brushes.Transparent;
         public bool IsExpanded { get; set; }
@@ -32,7 +35,7 @@ namespace TransDiffer.Model
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public FlowDocument CreateDetailsDocument()
+        public FlowDocument CreateDetailsDocument(Action<TranslationStringReference> navigateToLine, Action<LangFile> navigateToFile)
         {
             if (cachedDocument != null)
                 return cachedDocument;
@@ -44,18 +47,84 @@ namespace TransDiffer.Model
 
             if (Translations.Count > 0)
             {
-                para = new Paragraph(new Run("Translated to: " + string.Join(", ", Translations.Select(e => $"{e.Key}({e.Value.Source.Name})")))) { Margin = new Thickness() };
+                para = new Paragraph() { Margin = new Thickness() };
+
+                para.Inlines.Add(new Run("Translated to: "));
+
+                bool first = true;
+                foreach (var t in Translations)
+                {
+                    if (!first)
+                    {
+                        para.Inlines.Add(new Run(", "));
+                    }
+
+                    var tr = t.Key;
+                    var file = t.Value;
+
+                    var link = new Hyperlink(new Run(tr));
+                    para.Inlines.Add(link);
+                    para.Inlines.Add(new Run($"({file.Source.Name})"));
+
+                    first = false;
+
+                    link.Click += (s, a) =>
+                        navigateToLine(t.Value);
+                }
+
                 block.Blocks.Add(para);
             }
 
             if (MissingInLanguages.Count > 0)
             {
-                para = new Paragraph(new Run("Missing in: " + string.Join(", ", MissingInLanguages.Select(o => $"{o.Name}({o.Source.Name})")))) { Margin = new Thickness() };
+                para = new Paragraph() { Margin = new Thickness() };
+
+                para.Inlines.Add(new Run("Missing in: "));
+
+                bool first = true;
+                foreach (var t in MissingInLanguages)
+                {
+                    if (!first)
+                    {
+                        para.Inlines.Add(new Run(", "));
+                    }
+
+                    var tr = t.Name;
+                    var file = t;
+
+                    var link = new Hyperlink(new Run(tr));
+                    para.Inlines.Add(link);
+                    para.Inlines.Add(new Run($"({file.Source.Name})"));
+
+                    first = false;
+
+                    bool found = false;
+                    var tParent = this;
+                    while (tParent.Parent != null)
+                    {
+                        tParent = tParent.Parent;
+                        if (tParent.Translations.TryGetValue(tParent.Name, out var pt))
+                        {
+                            link.Click += (s, a) =>
+                                navigateToLine(pt);
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if(!found)
+                    {
+                        link.Click += (s, a) =>
+                            navigateToFile(t.Source);
+                    }
+                }
+
                 block.Blocks.Add(para);
             }
 
             cachedDocument = new FlowDocument(block);
             return cachedDocument;
         }
+
     }
 }

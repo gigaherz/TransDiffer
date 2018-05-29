@@ -4,7 +4,7 @@ namespace TransDiffer.Parser.Structure
 {
     class MenuDefinition : ResourceStatement
     {
-        public Token Identifier { get; set; }
+        public ExpressionValue Identifier { get; set; }
         public List<MenuItemDefinition> Entries { get; } = new List<MenuItemDefinition>();
         // Style, Font etc not needed for our purposes
     }

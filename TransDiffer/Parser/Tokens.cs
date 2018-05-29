@@ -16,6 +16,7 @@ namespace TransDiffer.Parser
         Slash,
         Pipe,
         Ampersand,
+        Squiggly,
 
         HexInt,
         Integer,
@@ -23,6 +24,10 @@ namespace TransDiffer.Parser
         String,
 
         Ident,
+
+        And,
+        Or,
+        Not,
 
         Begin,
         IdEnd,

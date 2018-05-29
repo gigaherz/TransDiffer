@@ -191,7 +191,7 @@ namespace TransDiffer.Model
             }
         }
 
-        public FlowDocument CreateDetailsDocument()
+        public FlowDocument CreateDetailsDocument(Action<TranslationStringReference> navigateToLine)
         {
             if (cachedDetailsDocument != null)
                 return cachedDetailsDocument;
@@ -204,9 +204,30 @@ namespace TransDiffer.Model
             {
                 if (str.MissingInLanguages.Any(s => containedLangs.Contains(s.Name)))
                 {
-                    var list = string.Join(", ", str.Translations.Select(e => $"{e.Key}({e.Value.Source.Name})"));
-                    var para = new Paragraph() { Margin = new Thickness() };
-                    para.Inlines.Add(new Run($"Missing {str.Name}, seen in: {list}"));
+                    var para = new Paragraph { Margin = new Thickness() };
+                    para.Inlines.Add(new Run($"Missing {str.Name}, seen in: "));
+
+                    bool first = true;
+                    foreach(var t in str.Translations)
+                    {
+                        if (!first)
+                        {
+                            para.Inlines.Add(new Run(", "));
+                        }
+
+                        var tr = t.Key;
+                        var file = t.Value;
+
+                        var link = new Hyperlink(new Run(tr));
+                        para.Inlines.Add(link);
+                        para.Inlines.Add(new Run($"({file.Source.Name})"));
+
+                        first = false;
+
+                        link.Click += (s, a) => 
+                            navigateToLine(t.Value);
+                    }
+
                     block.Blocks.Add(para);
                 }
             }

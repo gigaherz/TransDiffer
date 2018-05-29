@@ -141,12 +141,15 @@ namespace TransDiffer.Parser
         {
             if (Lexer.Peek() == Tokens.Language) return LanguageStatement();
             if (Lexer.Peek() == Tokens.StringTable) return StringTableStatement();
-            if (Lexer.Peek() == Tokens.Ident && Lexer.Peek(1) == Tokens.Menu) return MenuStatement();
-            if (Lexer.Peek() == Tokens.Ident && Lexer.Peek(1) == Tokens.MenuEx) return MenuStatement();
-            if (Lexer.Peek() == Tokens.Ident && Lexer.Peek(1) == Tokens.Dialog) return DialogStatement(false);
-            if (Lexer.Peek() == Tokens.Ident && Lexer.Peek(1) == Tokens.DialogEx) return DialogStatement(true);
-            //if (Lexer.Peek() == Tokens.Begin) return OrphanedBeginEndBlock();
-
+            if (IsExpressionStartToken())
+            {
+                var ident = Expression();
+                if (Lexer.Peek() == Tokens.Menu) return MenuStatement(ident);
+                if (Lexer.Peek() == Tokens.MenuEx) return MenuStatement(ident);
+                if (Lexer.Peek() == Tokens.Dialog) return DialogStatement(ident,false);
+                if (Lexer.Peek() == Tokens.DialogEx) return DialogStatement(ident,true);
+                //if (Lexer.Peek() == Tokens.Begin) return OrphanedBeginEndBlock();
+            }
             //throw new ParserException(this, $"Internal Error: Unexpected Look-Ahead {Lexer.Peek(0)}");
             return new ParseErrorRecovery(Lexer.Pop());
         }
@@ -172,9 +175,8 @@ namespace TransDiffer.Parser
             return ls;
         }
 
-        private MenuDefinition MenuStatement()
+        private MenuDefinition MenuStatement(ExpressionValue ident)
         {
-            var ident = PopExpected(Tokens.Ident);
             var ctx = PopExpected(Tokens.Menu, Tokens.MenuEx);
 
             if (Lexer.Peek() == Tokens.Discardable)
@@ -211,14 +213,14 @@ namespace TransDiffer.Parser
 
             if (Lexer.Peek() == Tokens.Comma)
                 PopExpected(Tokens.Comma);
-            if (IsExpressionToken())
+            if (IsExpressionStartToken())
             {
                 ident = Expression(false);
                 if (Lexer.Peek() == Tokens.Comma)
                     PopExpected(Tokens.Comma);
 
                 // Ignore all remaining expressions
-                while (IsExpressionToken())
+                while (IsExpressionStartToken())
                 {
                     var expr = Expression();
                     // ignore, we don't need it
@@ -253,9 +255,8 @@ namespace TransDiffer.Parser
         }
 
 
-        private DialogDefinition DialogStatement(bool isEx)
+        private DialogDefinition DialogStatement(ExpressionValue ident, bool isEx)
         {
-            var ident = PopExpected(Tokens.Ident);
             var ctx = PopExpected(isEx ? Tokens.DialogEx : Tokens.Dialog);
 
             if (Lexer.Peek() == Tokens.Discardable)
@@ -265,7 +266,7 @@ namespace TransDiffer.Parser
             de.Identifier = ident;
             de.Context = ctx.Context;
 
-            while (IsExpressionToken())
+            while (IsExpressionStartToken())
             {
                 var expr = Expression();
                 // ignore, we don't need it
@@ -320,7 +321,7 @@ namespace TransDiffer.Parser
                     throw new ParserException(this, $"Internal Error: Unexpected Look-Ahead {Lexer.Peek(0)}");
                 }
                 // Ignore all remaining expressions
-                while (IsExpressionToken())
+                while (IsExpressionStartToken())
                 {
                     var expr = Expression();
                     // ignore, we don't need it
@@ -388,7 +389,7 @@ namespace TransDiffer.Parser
                 throw new ParserException(this, $"Internal Error: Unexpected Look-Ahead {Lexer.Peek(0)}");
             }
             // Ignore all remaining expressions
-            while (IsExpressionToken())
+            while (IsExpressionStartToken())
             {
                 var expr = Expression();
                 // ignore, we don't need it
@@ -446,22 +447,22 @@ namespace TransDiffer.Parser
             return ste;
         }
 
-        private bool IsExpressionToken()
+        private bool IsExpressionStartToken(int offset = 0, bool allowStrings = true)
         {
             return
-                Lexer.Peek() == Tokens.Integer ||
-                Lexer.Peek() == Tokens.HexInt ||
-                Lexer.Peek() == Tokens.Double ||
-                Lexer.Peek() == Tokens.String ||
-                Lexer.Peek() == Tokens.Ident ||
-                Lexer.Peek() == Tokens.Plus ||
-                Lexer.Peek() == Tokens.Minus ||
-                Lexer.Peek() == Tokens.Asterisk ||
-                Lexer.Peek() == Tokens.Slash ||
-                Lexer.Peek() == Tokens.Pipe ||
-                Lexer.Peek() == Tokens.Ampersand ||
-                Lexer.Peek() == Tokens.LParen ||
-                Lexer.Peek() == Tokens.RParen;
+                (allowStrings ? IsExpressionValue(offset) : IsExpressionNumber(offset)) ||
+                IsExpressionUnaryOperator(offset) ||
+                Lexer.Peek(offset) == Tokens.LParen;
+        }
+
+        private bool IsExpressionToken(int offset = 0, bool allowStrings = true)
+        {
+            return
+                (allowStrings ? IsExpressionValue(offset) : IsExpressionNumber(offset)) ||
+                IsExpressionBinaryOperator(offset) ||
+                IsExpressionUnaryOperator(offset) ||
+                Lexer.Peek(offset) == Tokens.LParen ||
+                Lexer.Peek(offset) == Tokens.RParen;
         }
 
         private bool IsExpressionValue(int offset = 0)
@@ -483,7 +484,7 @@ namespace TransDiffer.Parser
                 Lexer.Peek(offset) == Tokens.Ident;
         }
 
-        private bool IsExpressionOperator(int offset = 0)
+        private bool IsExpressionBinaryOperator(int offset = 0)
         {
             return
                 Lexer.Peek(offset) == Tokens.Plus ||
@@ -491,13 +492,17 @@ namespace TransDiffer.Parser
                 Lexer.Peek(offset) == Tokens.Asterisk ||
                 Lexer.Peek(offset) == Tokens.Slash ||
                 Lexer.Peek(offset) == Tokens.Pipe ||
-                Lexer.Peek(offset) == Tokens.Ampersand;
+                Lexer.Peek(offset) == Tokens.Ampersand ||
+                Lexer.Peek(offset) == Tokens.And ||
+                Lexer.Peek(offset) == Tokens.Or;
         }
 
         private bool IsExpressionUnaryOperator(int offset = 0)
         {
             return
-                Lexer.Peek(offset) == Tokens.Minus;
+                Lexer.Peek(offset) == Tokens.Minus ||
+                Lexer.Peek(offset) == Tokens.Squiggly ||
+                Lexer.Peek(offset) == Tokens.Not;
         }
 
         private ExpressionValue Expression(bool allowStrings = true)
@@ -515,30 +520,34 @@ namespace TransDiffer.Parser
 
         private void RecurseExpression(ExpressionValue value, bool allowStrings)
         {
-            // Expression ::= Value
-            // Expression ::= Operator Value
-            // Expression ::= Value Operator Expression
-            // Expression ::= ( Expression )
             if (allowStrings ? IsExpressionValue() : IsExpressionNumber())
             {
+                // Expression ::= Value (Operator Expression)?
+
                 value.Tokens.Add(Lexer.Pop());
-                if (IsExpressionOperator())
+
+                if (IsExpressionBinaryOperator())
                 {
                     value.Tokens.Add(Lexer.Pop());
                     RecurseExpression(value, allowStrings);
                 }
             }
-            else if (IsExpressionUnaryOperator() && (allowStrings ? IsExpressionValue(1) : IsExpressionNumber(1)))
+            else if (IsExpressionUnaryOperator() && IsExpressionStartToken(1, allowStrings))
             {
+                // Expression ::= Operator Expression
+
                 value.Tokens.Add(Lexer.Pop());
-                value.Tokens.Add(Lexer.Pop());
+                RecurseExpression(value, allowStrings);
             }
             else if(Lexer.Peek() == Tokens.LParen)
             {
+                // Expression ::= '(' Expression ')' (Operator Expression)?
+
                 value.Tokens.Add(PopExpected(Tokens.LParen));
                 RecurseExpression(value, allowStrings);
                 value.Tokens.Add(PopExpected(Tokens.RParen));
-                if (IsExpressionOperator())
+
+                if (IsExpressionBinaryOperator())
                 {
                     value.Tokens.Add(Lexer.Pop());
                     RecurseExpression(value, allowStrings);

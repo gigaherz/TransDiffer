@@ -88,6 +88,9 @@ namespace TransDiffer.Parser
             Tuple.Create("Icon", Tokens.Icon),
             Tuple.Create("ComboBox", Tokens.ComboBox),
             Tuple.Create("CText", Tokens.CText),
+            Tuple.Create("And", Tokens.And),
+            Tuple.Create("Or", Tokens.Or),
+            Tuple.Create("Not", Tokens.Not),
         };
 
         private Token ParseOne()
@@ -174,6 +177,7 @@ namespace TransDiffer.Parser
             case '/': return new Token(Tokens.Slash, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
             case '|': return new Token(Tokens.Pipe, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
             case '&': return new Token(Tokens.Ampersand, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
+            case '~': return new Token(Tokens.Squiggly, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
             }
 
             if (char.IsLetter((char)ich) || ich == '_')
