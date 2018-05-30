@@ -18,14 +18,14 @@ namespace TransDiffer.Model
         // Results of the comparison
         public TranslationString String { get; set; }
 
-        public List<Paragraph> Paragraphs { get; } = new List<Paragraph>();
+        public List<FileLineItem> Paragraphs { get; } = new List<FileLineItem>();
 
         public TranslationStringReference Previous { get; set; }
         public TranslationStringReference Next { get; set; }
 
         public override string ToString()
         {
-            return $"{{{IdentifierToken.Process()}={Lexer.UnescapeString(TextValueToken, true)}}}";
+            return $"{{{IdentifierToken.Process()}={Lexer.UnescapeString(TextValueToken)}}}";
         }
     }
 }

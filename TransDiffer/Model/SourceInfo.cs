@@ -3,7 +3,7 @@ using System.IO;
 
 namespace TransDiffer.Model
 {
-    class SourceInfo
+    public class SourceInfo
     {
         public FileInfo File { get; set; }
         public int Line { get; set; }

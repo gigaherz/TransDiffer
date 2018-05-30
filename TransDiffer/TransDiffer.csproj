@@ -63,9 +63,11 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="BindableTextBlock.cs" />
     <Compile Include="ExternalEditorDialog.xaml.cs">
       <DependentUpon>ExternalEditorDialog.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Model\FileLineItem.cs" />
     <Compile Include="Model\ComponentFolder.cs" />
     <Compile Include="Model\IExpandable.cs" />
     <Compile Include="Model\LangFile.cs" />

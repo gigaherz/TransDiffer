@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:TransDiffer"
         xmlns:model="clr-namespace:TransDiffer.Model"
         mc:Ignorable="d"
-        Title="MainWindow" Height="600" Width="1200" ResizeMode="CanResizeWithGrip"
+        Title="{Binding CurrentTitleBar}" Height="600" Width="1200" ResizeMode="CanResizeWithGrip"
         Background="{x:Static SystemColors.ControlBrush}"
         DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <Window.Resources>
@@ -242,23 +242,34 @@
             </StackPanel>
             <Grid Grid.Column="2" Grid.Row="2">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <RichTextBox x:Name="FileContents" Grid.Column="1" Grid.Row="1"
-                             VerticalScrollBarVisibility="Visible"
-                             IsInactiveSelectionHighlightEnabled="True"
-                             IsReadOnly="true" IsDocumentEnabled="True"
-                             IsReadOnlyCaretVisible="True" SelectionChanged="FileContents_OnSelectionChanged"
-                             MouseDoubleClick="FileContents_OnMouseDoubleClick">
-                </RichTextBox>
-                <RichTextBox x:Name="DetailsPane" Grid.Row="2" Margin="0,5,0,0" 
-                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                             Visibility="{Binding ShowDetailsPane, Converter={StaticResource B2V}}"
-                             MaxHeight="500" BorderBrush="Transparent" BorderThickness="0" 
-                             IsReadOnly="true" IsDocumentEnabled="True" IsReadOnlyCaretVisible="False" Background="Transparent">
-                </RichTextBox>
+
+                <ListBox x:Name="FileContents" Grid.Row="0"
+                         ItemsSource="{Binding CurrentFileLines}" SelectionMode="Extended"
+                         SelectionChanged="FileContents_OnSelectionChanged"
+                         MouseDoubleClick="FileContents_OnMouseDoubleClick"
+                         FontFamily="Courier New">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <local:BindableTextBlock PartsSource="{Binding Inlines}" Margin="0" Padding="0" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ListBox>
+
+                <ScrollViewer Grid.Row="1" MaxHeight="240" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Padding="0,5,5,0"
+                              Visibility="{Binding ShowDetailsPane, Converter={StaticResource B2V}}">
+                    <ItemsControl x:Name="DetailsPane"
+                                  ItemsSource="{Binding CurrentDetails}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <local:BindableTextBlock PartsSource="{Binding Inlines}" Margin="0" Padding="0" TextTrimming="CharacterEllipsis" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
             </Grid>
         </Grid>
     </DockPanel>

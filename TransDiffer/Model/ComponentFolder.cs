@@ -22,7 +22,7 @@ namespace TransDiffer.Model
         public string Path => Directory.FullName;
         public string Name => Directory.FullName.Substring(Root.FullName.Length);
         public bool HasErrors => Files.Any(f => f.HasErrors);
-        public Brush Background => HasErrors ? Brushes.Pink : Brushes.Transparent;
+        public Brush Background => HasErrors ? MainWindow.SemiRed : Brushes.Transparent;
 
         public bool IsExpanded
         {

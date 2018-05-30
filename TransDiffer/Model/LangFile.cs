@@ -22,7 +22,7 @@ namespace TransDiffer.Model
 
         public string Name => File.Name;
         public bool HasErrors { get; private set; }
-        public Brush Background => HasErrors ? Brushes.Pink : Brushes.Transparent;
+        public Brush Background => HasErrors ? MainWindow.SemiRed : Brushes.Transparent;
 
         public bool IsExpanded
         {
@@ -36,8 +36,8 @@ namespace TransDiffer.Model
         }
 
         public string[] Content;
-        private FlowDocument cachedDocument;
-        private FlowDocument cachedDetailsDocument;
+        private ObservableCollection<FileLineItem> cachedDocument;
+        private ObservableCollection<FileLineItem> cachedDetailsDocument;
         private bool _isExpanded;
 
         public void FinishLoading()
@@ -72,12 +72,11 @@ namespace TransDiffer.Model
             }
         }
 
-        public void BuildDocument(RichTextBox rtb, ToolTip tt, Action<int> progress)
+        public ObservableCollection<FileLineItem> BuildDocument()
         {
             if (cachedDocument != null)
             {
-                rtb.Document = cachedDocument;
-                return;
+                return cachedDocument;
             }
 
             var lines = System.IO.File.ReadAllLines(File.FullName);
@@ -144,13 +143,8 @@ namespace TransDiffer.Model
                 return a.startColumn.CompareTo(b.startColumn);
             });
             
-            cachedDocument = new FlowDocument();
-            rtb.Document = cachedDocument;
-            cachedDocument.FontFamily = new FontFamily("Courier New");
-
-            var section = new Section();
-            cachedDocument.Blocks.Add(section);
-
+            cachedDocument = new ObservableCollection<FileLineItem>();
+            
             SourceInfo previousSourceInfo = null;
             int j = 0;
             for(int i=0;i<lines.Length;i++)
@@ -159,9 +153,8 @@ namespace TransDiffer.Model
                 sourceInfo.Previous = previousSourceInfo;
                 if (previousSourceInfo != null)
                     previousSourceInfo.Next = sourceInfo;
-                var para = new Paragraph()
+                var para = new FileLineItem()
                 {
-                    Margin = new Thickness(),
                     Tag = sourceInfo
                 };
                 var ln = lines[i];
@@ -186,17 +179,19 @@ namespace TransDiffer.Model
                     para.Inlines.Add(new Run(ln.Substring(col, end - col)));
                 }
 
-                section.Blocks.Add(para);
+                cachedDocument.Add(para);
                 previousSourceInfo = sourceInfo;
             }
+
+            return cachedDocument;
         }
 
-        public FlowDocument CreateDetailsDocument(Action<TranslationStringReference> navigateToLine)
+        public ObservableCollection<FileLineItem> CreateDetailsDocument(Action<TranslationStringReference> navigateToLine)
         {
             if (cachedDetailsDocument != null)
                 return cachedDetailsDocument;
 
-            var block = new Section();
+            cachedDetailsDocument = new ObservableCollection<FileLineItem>();
 
             var containedLangs = new HashSet<string>(ContainedLangs.Select(s => s.Name));
 
@@ -204,7 +199,7 @@ namespace TransDiffer.Model
             {
                 if (str.MissingInLanguages.Any(s => containedLangs.Contains(s.Name)))
                 {
-                    var para = new Paragraph { Margin = new Thickness() };
+                    var para = new FileLineItem();
                     para.Inlines.Add(new Run($"Missing {str.Name}, seen in: "));
 
                     bool first = true;
@@ -228,11 +223,10 @@ namespace TransDiffer.Model
                             navigateToLine(t.Value);
                     }
 
-                    block.Blocks.Add(para);
+                    cachedDetailsDocument.Add(para);
                 }
             }
 
-            cachedDetailsDocument = new FlowDocument(block);
             return cachedDetailsDocument;
 
         }

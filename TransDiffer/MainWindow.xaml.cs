@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -23,10 +24,11 @@ namespace TransDiffer
     /// </summary>
     public partial class MainWindow : INotifyPropertyChanged
     {
+        public static Brush SemiRed = new SolidColorBrush(Color.FromArgb(96, 255, 60, 0));
+
         private string _templateName = "ByFileTemplate";
         private bool _isScanningAllowed;
         private bool _canCancel;
-        private bool _showDetailsPane = false;
         private string _treeSearchTerm = "";
         private string _externalEditorPath;
         private string _externalEditorCommandLinePattern;
@@ -34,9 +36,10 @@ namespace TransDiffer
 
         public Action CancelScanning = null;
         public DirectoryInfo Root;
+        private ObservableCollection<FileLineItem> _currentFileLines;
+        private ObservableCollection<FileLineItem> _currentDetails;
+        private LangFile _currentFile;
         public ObservableCollection<ComponentFolder> Folders { get; } = new ObservableCollection<ComponentFolder>();
-
-        public ToolTip MissingLangs { get; } = new ToolTip();
 
         public RelayCommand ShowInExplorerCommand { get; }
         public RelayCommand OpenLangFileCommand { get; }
@@ -78,6 +81,7 @@ namespace TransDiffer
                 OnPropertyChanged(nameof(IsById));
             }
         }
+
         public bool IsByFile => TemplateName == "ByFileTemplate";
         public bool IsById => TemplateName == "ByIdTemplate";
 
@@ -103,6 +107,56 @@ namespace TransDiffer
                 OnPropertyChanged();
             }
         }
+
+        public LangFile CurrentFile
+        {
+            get { return _currentFile; }
+            set
+            {
+                if (Equals(value, _currentFile)) return;
+                _currentFile = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CurrentTitleBar));
+            }
+        }
+
+        public string CurrentTitleBar
+        {
+            get
+            {
+                if (CurrentFile != null)
+                {
+                    return $"TransDiffer - {CurrentFile.File.FullName}";
+                }
+
+                return "TransDiffer";
+            }
+        }
+
+        public ObservableCollection<FileLineItem> CurrentFileLines
+        {
+            get { return _currentFileLines; }
+            set
+            {
+                if (Equals(value, _currentFileLines)) return;
+                _currentFileLines = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ObservableCollection<FileLineItem> CurrentDetails
+        {
+            get { return _currentDetails; }
+            set
+            {
+                if (Equals(value, _currentDetails)) return;
+                _currentDetails = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ShowDetailsPane));
+            }
+        }
+
+        public bool ShowDetailsPane => CurrentDetails != null && CurrentDetails.Count > 0;
 
         public MainWindow()
         {
@@ -243,12 +297,12 @@ namespace TransDiffer
             {
                 TranslationString str = null;
 
-                var cp = FileContents.CaretPosition;
-                if (cp.Paragraph?.Tag is SourceInfo r)
+                if (FileContents.SelectedItems.Count > 0)
                 {
-                    if (r.Strings.Count > 0)
+                    var cp = FileContents.SelectedItem as FileLineItem;
+                    if (cp.Tag.Strings.Count > 0)
                     {
-                        var first = r.Strings.First();
+                        var first = cp.Tag.Strings.First();
                         if (first.Source.Folder == f.Folder)
                         {
                             str = first.String;
@@ -256,7 +310,7 @@ namespace TransDiffer
                     }
                 }
 
-                f.BuildDocument(FileContents, MissingLangs, _ => { });
+                CurrentFileLines = f.BuildDocument();
 
                 FileContents_OnSelectionChanged(FileContents, new RoutedEventArgs(e.RoutedEvent));
 
@@ -274,6 +328,8 @@ namespace TransDiffer
                         }
                     }
                 }
+
+                CurrentFile = f;
             }
         }
 
@@ -325,35 +381,20 @@ namespace TransDiffer
                 CancelScanning?.Invoke();
         }
 
-        public bool ShowDetailsPane
-        {
-            get { return _showDetailsPane; }
-            set
-            {
-                if (value == _showDetailsPane) return;
-                _showDetailsPane = value;
-                OnPropertyChanged();
-            }
-        }
-
         private void FileContents_OnSelectionChanged(object sender, RoutedEventArgs e)
         {
-            var cp = FileContents.CaretPosition;
-            var p = cp.Paragraph;
-            if (p?.Tag is SourceInfo info && info.Strings.Count > 0)
+            var s = FileContents.SelectedItems.Cast<FileLineItem>().SelectMany(i => i.Tag.Strings).Distinct().ToList();
+            if (s.Count == 1)
             {
-                DetailsPane.Document = info.Strings.First().String.CreateDetailsDocument(NavigateToTranslation, NavigateToFile);
-                ShowDetailsPane = true;
+                CurrentDetails = s.First().String.CreateDetailsDocument(NavigateToTranslation, NavigateToFile);
             }
             else if (FoldersTree.SelectedItem is LangFile f)
             {
-                DetailsPane.Document = f.CreateDetailsDocument(NavigateToTranslation);
-                ShowDetailsPane = true;
+                CurrentDetails = f.CreateDetailsDocument(NavigateToTranslation);
             }
             else
             {
-                DetailsPane.Document = new FlowDocument();
-                ShowDetailsPane = false;
+                CurrentDetails = new ObservableCollection<FileLineItem>();
             }
         }
 
@@ -381,8 +422,7 @@ namespace TransDiffer
                     {
                         if (obj.Paragraphs.Count > 0)
                         {
-                            FileContents.Selection.Select(obj.Paragraphs.First().ContentStart, obj.Paragraphs.Last().ContentEnd);
-
+                            SetSelection(obj.Paragraphs);
                             ScrollAndFocus();
                         }
                     }));
@@ -392,17 +432,19 @@ namespace TransDiffer
 
         private void FileContents_OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            var cp = FileContents.CaretPosition;
-            if (cp.Paragraph.Tag is SourceInfo r)
+            if (FileContents.SelectedItems.Count != 1)
+                return;
+
+            var p = (FileLineItem) FileContents.SelectedItem;
+            var r = p.Tag;
+            if (!TryLaunchExternalEditor(r))
             {
-                if (!TryLaunchExternalEditor(r))
+                if (OpenExternalEditorDialog())
                 {
-                    if (OpenExternalEditorDialog())
+                    if (!TryLaunchExternalEditor(r))
                     {
-                        if (!TryLaunchExternalEditor(r))
-                        {
-                            MessageBox.Show("Could not launch external editor", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
+                        MessageBox.Show("Could not launch external editor", "Error", MessageBoxButton.OK,
+                            MessageBoxImage.Error);
                     }
                 }
             }
@@ -459,8 +501,11 @@ namespace TransDiffer
         {
             try
             {
-                var cp = FileContents.CaretPosition;
-                if (cp.Paragraph.Tag is SourceInfo r)
+                if (FileContents.SelectedItems.Count != 1)
+                    return;
+
+                var p = (FileLineItem)FileContents.SelectedItem;
+                var r = p.Tag;
                 {
                     bool hadToLoop = r.Strings.Count == 0;
                     while (r.Strings.Count == 0)
@@ -474,7 +519,7 @@ namespace TransDiffer
                     if (!hadToLoop) str = str.Next;
                     if (str == null)
                         return;
-                    FileContents.Selection.Select(str.Paragraphs.First().ContentStart, str.Paragraphs.Last().ContentEnd);
+                    SetSelection(str.Paragraphs);
                 }
             }
             finally
@@ -483,14 +528,21 @@ namespace TransDiffer
             }
         }
 
+        private void SetSelection(IEnumerable<FileLineItem> items = null)
+        {
+            if (items != null)
+            {
+                FileContents.SelectedItems.Clear();
+                foreach (var item in items)
+                    FileContents.SelectedItems.Add(item);
+            }
+        }
         private void ScrollAndFocus()
         {
             FileContents.Focus();
             Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
-                Rect rect = FileContents.Selection.Start.GetCharacterRect(LogicalDirection.Backward);
-                double offset = rect.Top + FileContents.VerticalOffset + (rect.Height - FileContents.ActualHeight) * 0.5;
-                FileContents.ScrollToVerticalOffset(offset);
+                FileContents.ScrollIntoView(FileContents.SelectedItem);
             }));
         }
 
@@ -498,8 +550,11 @@ namespace TransDiffer
         {
             try
             {
-                var cp = FileContents.CaretPosition;
-                if (cp.Paragraph.Tag is SourceInfo r)
+                if (FileContents.SelectedItems.Count != 1)
+                    return;
+
+                var p = (FileLineItem)FileContents.SelectedItem;
+                var r = p.Tag;
                 {
                     bool hadToLoop = r.Strings.Count == 0;
                     while (r.Strings.Count == 0)
@@ -513,7 +568,7 @@ namespace TransDiffer
                     if (!hadToLoop) str = str.Previous;
                     if (str == null)
                         return;
-                    FileContents.Selection.Select(str.Paragraphs.First().ContentStart, str.Paragraphs.Last().ContentEnd);
+                    SetSelection(str.Paragraphs);
                 }
             }
             finally
@@ -526,8 +581,11 @@ namespace TransDiffer
         {
             try
             {
-                var cp = FileContents.CaretPosition;
-                if (cp.Paragraph.Tag is SourceInfo r)
+                if (FileContents.SelectedItems.Count != 1)
+                    return;
+
+                var p = (FileLineItem)FileContents.SelectedItem;
+                var r = p.Tag;
                 {
                     bool hadToLoop = r.Strings.Count == 0;
                     while (r.Strings.Count == 0)
@@ -547,7 +605,7 @@ namespace TransDiffer
                             return;
                         str = str.Previous;
                     }
-                    FileContents.Selection.Select(str.Paragraphs.First().ContentStart, str.Paragraphs.Last().ContentEnd);
+                    SetSelection(str.Paragraphs);
                 }
             }
             finally
@@ -560,8 +618,11 @@ namespace TransDiffer
         {
             try
             {
-                var cp = FileContents.CaretPosition;
-                if (cp.Paragraph.Tag is SourceInfo r)
+                if (FileContents.SelectedItems.Count != 1)
+                    return;
+
+                var p = (FileLineItem)FileContents.SelectedItem;
+                var r = p.Tag;
                 {
                     bool hadToLoop = r.Strings.Count == 0;
                     while (r.Strings.Count == 0)
@@ -581,7 +642,7 @@ namespace TransDiffer
                             return;
                         str = str.Next;
                     }
-                    FileContents.Selection.Select(str.Paragraphs.First().ContentStart, str.Paragraphs.Last().ContentEnd);
+                    SetSelection(str.Paragraphs);
                 }
             }
             finally

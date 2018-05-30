@@ -13,7 +13,7 @@ namespace TransDiffer.Model
 {
     public class TranslationString : IExpandable
     {
-        private FlowDocument cachedDocument;
+        private ObservableCollection<FileLineItem> cachedDetailsDocument;
 
         public string Name { get; set; }
         public ObservableCollection<TranslationStringReference> Lines { get; } = new ObservableCollection<TranslationStringReference>();
@@ -35,19 +35,20 @@ namespace TransDiffer.Model
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public FlowDocument CreateDetailsDocument(Action<TranslationStringReference> navigateToLine, Action<LangFile> navigateToFile)
+        public ObservableCollection<FileLineItem> CreateDetailsDocument(Action<TranslationStringReference> navigateToLine, Action<LangFile> navigateToFile)
         {
-            if (cachedDocument != null)
-                return cachedDocument;
+            if (cachedDetailsDocument != null)
+                return cachedDetailsDocument;
 
-            var block = new Section();
+            cachedDetailsDocument = new ObservableCollection<FileLineItem>();
 
-            var para = new Paragraph(new Run($"Internal ID: {Name}")) { Margin = new Thickness() };
-            block.Blocks.Add(para);
+            var para = new FileLineItem();
+            para.Inlines.Add(new Run($"Internal ID: {Name}"));
+            cachedDetailsDocument.Add(para);
 
             if (Translations.Count > 0)
             {
-                para = new Paragraph() { Margin = new Thickness() };
+                para = new FileLineItem();
 
                 para.Inlines.Add(new Run("Translated to: "));
 
@@ -72,13 +73,12 @@ namespace TransDiffer.Model
                         navigateToLine(t.Value);
                 }
 
-                block.Blocks.Add(para);
+                cachedDetailsDocument.Add(para);
             }
 
             if (MissingInLanguages.Count > 0)
             {
-                para = new Paragraph() { Margin = new Thickness() };
-
+                para = new FileLineItem();
                 para.Inlines.Add(new Run("Missing in: "));
 
                 bool first = true;
@@ -119,12 +119,10 @@ namespace TransDiffer.Model
                     }
                 }
 
-                block.Blocks.Add(para);
+                cachedDetailsDocument.Add(para);
             }
 
-            cachedDocument = new FlowDocument(block);
-            return cachedDocument;
+            return cachedDetailsDocument;
         }
-
     }
 }
