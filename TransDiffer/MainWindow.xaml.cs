@@ -24,7 +24,15 @@ namespace TransDiffer
     public partial class MainWindow : INotifyPropertyChanged
     {
         private string _templateName = "ByFileTemplate";
+        private bool _isScanningAllowed;
+        private bool _canCancel;
+        private bool _showDetailsPane = false;
+        private string _treeSearchTerm = "";
+        private string _externalEditorPath;
+        private string _externalEditorCommandLinePattern;
+        private string _fileSearchTerm;
 
+        public Action CancelScanning = null;
         public DirectoryInfo Root;
         public ObservableCollection<ComponentFolder> Folders { get; } = new ObservableCollection<ComponentFolder>();
 
@@ -34,6 +42,28 @@ namespace TransDiffer
         public RelayCommand OpenLangFileCommand { get; }
         public RelayCommand ByFileCommand { get; }
         public RelayCommand ByIdCommand { get; }
+
+        public string TreeSearchTerm
+        {
+            get { return _treeSearchTerm; }
+            set
+            {
+                if (value == _treeSearchTerm) return;
+                _treeSearchTerm = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string FileSearchTerm
+        {
+            get { return _fileSearchTerm; }
+            set
+            {
+                if (value == _fileSearchTerm) return;
+                _fileSearchTerm = value;
+                OnPropertyChanged();
+            }
+        }
 
         public string TemplateName
         {
@@ -62,7 +92,6 @@ namespace TransDiffer
             }
         }
 
-        public Action CancelScanning = null;
 
         public bool CanCancel
         {
@@ -75,8 +104,6 @@ namespace TransDiffer
             }
         }
 
-        private string _externalEditorPath;
-        private string _externalEditorCommandLinePattern;
         public MainWindow()
         {
             ShowInExplorerCommand = new RelayCommand(ShowInExplorer_OnClick);
@@ -129,10 +156,6 @@ namespace TransDiffer
             });
             CanCancel = true;
         }
-
-        private bool _isScanningAllowed;
-        private bool _canCancel;
-        private bool _showDetailsPane = false;
 
         public Action RunInWorker(Action<Action<int>, Func<bool>, Action> task, Action<bool> completion)
         {
@@ -218,24 +241,39 @@ namespace TransDiffer
         {
             if (e.NewValue is LangFile f)
             {
-#if false
-                string xmlDoc = null;
-                StatusLabel.Text = "Preparing document...";
-                RunInWorker(
-                    (progress) => {
-                        var doc = f.BuildDocument(MissingLangs, progress);
-                        xmlDoc = XamlWriter.Save(doc);
-                    },
-                    () =>
+                TranslationString str = null;
+
+                var cp = FileContents.CaretPosition;
+                if (cp.Paragraph?.Tag is SourceInfo r)
+                {
+                    if (r.Strings.Count > 0)
                     {
-                        StatusLabel.Text = "Displaying document...";
-                        FileContents.Document = (FlowDocument)XamlReader.Parse(xmlDoc);
-                        StatusLabel.Text = "Done.";
-                    });
-#else
+                        var first = r.Strings.First();
+                        if (first.Source.Folder == f.Folder)
+                        {
+                            str = first.String;
+                        }
+                    }
+                }
+
                 f.BuildDocument(FileContents, MissingLangs, _ => { });
-#endif
+
                 FileContents_OnSelectionChanged(FileContents, new RoutedEventArgs(e.RoutedEvent));
+
+                if (str != null)
+                {
+                    foreach (var sl in f.ContainedLangs)
+                    {
+                        if (str.Translations.TryGetValue(sl.Name, out var ns))
+                        {
+                            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                            {
+                                NavigateToTranslation(ns);
+                            }));
+                            break;
+                        }
+                    }
+                }
             }
         }
 
@@ -555,6 +593,26 @@ namespace TransDiffer
         private void MenuItem_Click(object sender, RoutedEventArgs e)
         {
             ScanFolder(Root.FullName);
+        }
+
+        private void UIElement1_OnMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            TreeSearchBox.Clear();
+        }
+
+        private void UIElement2_OnMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            FileSearchBox.Clear();
+        }
+
+
+
+        private void TreeSearchBox_OnPreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Return && e.Key != Key.Enter)
+                return;
+
+            //FoldersTree.items
         }
     }
 }

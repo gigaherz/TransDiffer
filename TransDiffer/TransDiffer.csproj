@@ -85,7 +85,6 @@
     <Compile Include="Parser\Reader.cs" />
     <Compile Include="Parser\Structure\DialogControl.cs" />
     <Compile Include="Parser\Structure\DialogDefinition.cs" />
-    <Compile Include="Parser\Structure\Element.cs" />
     <Compile Include="Parser\Structure\ExpressionValue.cs" />
     <Compile Include="Parser\Structure\LanguageStatement.cs" />
     <Compile Include="Parser\Structure\MenuDefinition.cs" />
@@ -94,11 +93,11 @@
     <Compile Include="Parser\Structure\ResourceStatement.cs" />
     <Compile Include="Parser\Structure\StringTable.cs" />
     <Compile Include="Parser\Structure\StringTableEntry.cs" />
-    <Compile Include="Parser\Structure\Value.cs" />
     <Compile Include="Parser\Token.cs" />
     <Compile Include="Parser\Tokens.cs" />
     <Compile Include="Parser\Util\QueueList.cs" />
     <Compile Include="RelayCommand.cs" />
+    <Compile Include="SearchTermToVisibility.cs" />
     <Compile Include="SelectFolderDialog.xaml.cs">
       <DependentUpon>SelectFolderDialog.xaml</DependentUpon>
     </Compile>

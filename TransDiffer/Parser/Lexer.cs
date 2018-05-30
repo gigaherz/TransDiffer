@@ -452,7 +452,7 @@ namespace TransDiffer.Parser
             return true;
         }
 
-        public static string UnescapeString(Token t)
+        public static string UnescapeString(Token t, bool cancelRtl = false)
         {
             StringBuilder sb = new StringBuilder();
 
@@ -464,6 +464,8 @@ namespace TransDiffer.Parser
             int escapeAcc = 0;
             int escapeDigits = 0;
             int escapeMax = 0;
+
+            bool seenRtl = false;
 
             foreach (char c in t.Text)
             {
@@ -545,7 +547,11 @@ namespace TransDiffer.Parser
                     else if (!inHexEscape)
                     {
                         if (c == startQuote)
+                        {
+                            if (seenRtl && cancelRtl)
+                                sb.Append((char)0x200E);
                             return sb.ToString();
+                        }
                         switch (c)
                         {
                         case '\\':
@@ -566,6 +572,14 @@ namespace TransDiffer.Parser
                         break;
                     case '\'':
                         startQuote = '\'';
+                        break;
+                    case (char)0x200E:
+                        seenRtl = false;
+                        sb.Append(c);
+                        break;
+                    case (char)0x200F:
+                        seenRtl = true;
+                        sb.Append(c);
                         break;
                     default:
                         sb.Append(c);

@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:TransDiffer"
         xmlns:model="clr-namespace:TransDiffer.Model"
         mc:Ignorable="d"
-        Title="MainWindow" Height="600" Width="1000" ResizeMode="CanResizeWithGrip"
+        Title="MainWindow" Height="600" Width="1200" ResizeMode="CanResizeWithGrip"
         Background="{x:Static SystemColors.ControlBrush}"
         DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <Window.Resources>
@@ -22,6 +22,7 @@
         </ContextMenu>
 
         <BooleanToVisibilityConverter x:Key="B2V" />
+        <local:SearchTermToVisibility x:Key="SearchTermToVisibility" />
 
         <HierarchicalDataTemplate x:Key="ByFileTemplate" ItemsSource="{Binding Files}" DataType="{x:Type model:ComponentFolder}">
             <HierarchicalDataTemplate.ItemTemplate>
@@ -61,26 +62,6 @@
         </HierarchicalDataTemplate>
     </Window.Resources>
     <DockPanel>
-        <Menu DockPanel.Dock="Top">
-            <MenuItem Header="File">
-                <MenuItem Header="Exit" />
-            </MenuItem>
-            <MenuItem Header="Workspace">
-                <MenuItem Header="Change Folder" IsEnabled="{Binding IsScanningAllowed}" Click="ChangeWorkspace_Click" />
-                <MenuItem Header="Rescan" IsEnabled="{Binding IsScanningAllowed}" Click="MenuItem_Click" />
-            </MenuItem>
-            <MenuItem Header="View">
-                <MenuItem Header="By File" IsCheckable="True" IsChecked="{Binding IsByFile, Mode=OneWay}" Command="{Binding ByFileCommand}" />
-                <MenuItem Header="By ID" IsCheckable="True" IsChecked="{Binding IsById, Mode=OneWay}" Command="{Binding ByIdCommand}" />
-            </MenuItem>
-            <MenuItem Header="Options">
-                <MenuItem Header="External Editor..." Click="ExternalEditorMenuItem_Click"></MenuItem>
-                <MenuItem Header="TODO" />
-            </MenuItem>
-            <MenuItem Header="Help">
-                <MenuItem Header="GIT GUD!" />
-            </MenuItem>
-        </Menu>
         <StatusBar DockPanel.Dock="Bottom">
             <StatusBarItem>
                 <ProgressBar x:Name="LoadingProgress" Width="120" MinHeight="18" VerticalAlignment="Stretch"></ProgressBar>
@@ -95,16 +76,73 @@
             </StatusBarItem>
         </StatusBar>
         <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="46*" MinWidth="240"/>
-                <ColumnDefinition Width="194*"/>
-                <ColumnDefinition Width="43*"/>
-                <ColumnDefinition Width="709*"/>
+                <ColumnDefinition Width="3*" MinWidth="240"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="7*" MinWidth="600"/>
             </Grid.ColumnDefinitions>
-            <TreeView Grid.Column="0"
-                      x:Name="FoldersTree"
-                      ItemsSource="{Binding Folders}" SelectedItemChanged="TreeView_SelectedItemChanged" Margin="0,0,8,0"
-                      ItemTemplate="{StaticResource ByFileTemplate}" Grid.ColumnSpan="3">
+            <Menu Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" HorizontalAlignment="Left">
+                <MenuItem Header="File">
+                    <MenuItem Header="Exit" />
+                </MenuItem>
+                <MenuItem Header="Workspace">
+                    <MenuItem Header="Change Folder" IsEnabled="{Binding IsScanningAllowed}" Click="ChangeWorkspace_Click" />
+                    <MenuItem Header="Rescan" IsEnabled="{Binding IsScanningAllowed}" Click="MenuItem_Click" />
+                </MenuItem>
+                <MenuItem Header="View">
+                    <MenuItem Header="By File" IsCheckable="True" IsChecked="{Binding IsByFile, Mode=OneWay}" Command="{Binding ByFileCommand}" />
+                    <MenuItem Header="By ID" IsCheckable="True" IsChecked="{Binding IsById, Mode=OneWay}" Command="{Binding ByIdCommand}" />
+                </MenuItem>
+                <MenuItem Header="Options">
+                    <MenuItem Header="External Editor..." Click="ExternalEditorMenuItem_Click"></MenuItem>
+                    <MenuItem Header="TODO" />
+                </MenuItem>
+                <MenuItem Header="Help">
+                    <MenuItem Header="GIT GUD!" />
+                </MenuItem>
+            </Menu>
+            <Border Grid.Column="0" Grid.Row="1" Margin="8" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="240" Padding="4"
+                    BorderThickness="1" BorderBrush="{x:Static SystemColors.ActiveBorderBrush}"
+                    Background="{x:Static SystemColors.WindowBrush}">
+                <Grid>
+                    <TextBox Text="{Binding TreeSearchTerm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             x:Name="TreeSearchBox"
+                             BorderThickness="0" Background="Transparent"
+                             PreviewKeyDown="TreeSearchBox_OnPreviewKeyDown"
+                             VerticalAlignment="Center"></TextBox>
+                    <TextBlock Text="Search..." Opacity=".3" IsHitTestVisible="False" 
+                               VerticalAlignment="Center" HorizontalAlignment="Left"
+                               Visibility="{Binding TreeSearchTerm, Mode=OneWay, Converter={StaticResource SearchTermToVisibility}, ConverterParameter=True}"></TextBlock>
+                    <Label HorizontalAlignment="Right" VerticalAlignment="Center" Padding="0" Margin="0"
+                           MouseUp="UIElement1_OnMouseUp"
+                            Visibility="{Binding TreeSearchTerm, Mode=OneWay, Converter={StaticResource SearchTermToVisibility}, ConverterParameter=False}">
+                        <Label.Resources>
+                            <Style TargetType="Label">
+                                <Setter Property="Opacity" Value=".3"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="true">
+                                        <Setter Property="Opacity" Value="1" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Label.Resources>
+                        <Label.Content>
+                            <Path Fill="Black" Width="16" Height="16"
+                                  Data="m 8,16 c -4.41959,0 -8,-3.5804 -8,-8 0,-4.41959 3.58041,-8 8,-8 4.4196,0 8,3.58041 8,8 0,4.4196 -3.5804,8 -8,8 z m 4.03266,-10.89306 -0.90939,-0.90938 -2.96,2.96 -2.96163,-2.96 -0.90939,0.90938 2.96164,2.96164 -2.97959,2.97959 0.90938,0.90938 2.97959,-2.97959 2.97959,2.97959 0.90939,-0.90938 -2.98123,-2.98286 2.96164,-2.95837 z"
+                                  ></Path>
+                        </Label.Content>
+                    </Label>
+                </Grid>
+            </Border>
+            <TreeView x:Name="FoldersTree"
+                      Grid.Column="0" Grid.Row="2"
+                      ItemsSource="{Binding Folders}" SelectedItemChanged="TreeView_SelectedItemChanged"
+                      ItemTemplate="{StaticResource ByFileTemplate}">
                 <TreeView.ItemContainerStyle>
                     <Style TargetType="{x:Type TreeViewItem}">
                         <Setter Property="IsExpanded" 
@@ -112,70 +150,102 @@
                     </Style>
                 </TreeView.ItemContainerStyle>
             </TreeView>
-            <GridSplitter Grid.Column="2" MinWidth="8"></GridSplitter>
-            <Grid Grid.Column="3">
+            <GridSplitter Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" MinWidth="8" ResizeBehavior="PreviousAndNext" ResizeDirection="Columns"/>
+            <Border Grid.Column="2" Grid.Row="1" Margin="8" HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="240" Padding="4"
+                    BorderThickness="1" BorderBrush="{x:Static SystemColors.ActiveBorderBrush}"
+                    Background="{x:Static SystemColors.WindowBrush}">
+                <Grid>
+                    <TextBox Text="{Binding FileSearchTerm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             x:Name="FileSearchBox"
+                             BorderThickness="0" Background="Transparent"
+                             VerticalAlignment="Center"></TextBox>
+                    <TextBlock Text="Search..." Opacity=".3" IsHitTestVisible="False" 
+                               VerticalAlignment="Center" HorizontalAlignment="Left"
+                               Visibility="{Binding FileSearchTerm, Mode=OneWay, Converter={StaticResource SearchTermToVisibility}, ConverterParameter=True}"></TextBlock>
+                    <Label HorizontalAlignment="Right" VerticalAlignment="Center" Padding="0" Margin="0"
+                           MouseUp="UIElement2_OnMouseUp"
+                            Visibility="{Binding FileSearchTerm, Mode=OneWay, Converter={StaticResource SearchTermToVisibility}, ConverterParameter=False}">
+                        <Label.Resources>
+                            <Style TargetType="Label">
+                                <Setter Property="Opacity" Value=".3"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="true">
+                                        <Setter Property="Opacity" Value="1" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Label.Resources>
+                        <Label.Content>
+                            <Path Fill="Black" Width="16" Height="16"
+                                  Data="m 8,16 c -4.41959,0 -8,-3.5804 -8,-8 0,-4.41959 3.58041,-8 8,-8 4.4196,0 8,3.58041 8,8 0,4.4196 -3.5804,8 -8,8 z m 4.03266,-10.89306 -0.90939,-0.90938 -2.96,2.96 -2.96163,-2.96 -0.90939,0.90938 2.96164,2.96164 -2.97959,2.97959 0.90938,0.90938 2.97959,-2.97959 2.97959,2.97959 0.90939,-0.90938 -2.98123,-2.98286 2.96164,-2.95837 z"
+                                  ></Path>
+                        </Label.Content>
+                    </Label>
+                </Grid>
+            </Border>
+            <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" Orientation="Horizontal" Margin="0,8" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                <StackPanel.Resources>
+                    <Style TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+                        <Setter Property="Margin" Value="0,0,6,0" />
+                        <Setter Property="Padding" Value="4" />
+                    </Style>
+                </StackPanel.Resources>
+                <Button Click="Button_Click_1">
+                    <Button.Content>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Prev. String" Margin="8,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="🡱" Foreground="SeaGreen" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button.Content>
+                </Button>
+                <Button Click="Button_Click">
+                    <Button.Content>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Next String" Margin="8,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="🡳" Foreground="SeaGreen" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button.Content>
+                </Button>
+                <Grid Width="12"></Grid>
+                <Button Click="Button_Click_2">
+                    <Button.Content>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Prev. Issue" Margin="8,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="🡱" Foreground="DarkRed" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button.Content>
+                </Button>
+                <Button Click="Button_Click_3">
+                    <Button.Content>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Next Issue" Margin="8,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="🡳" Foreground="DarkRed" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button.Content>
+                </Button>
+            </StackPanel>
+            <Grid Grid.Column="2" Grid.Row="2">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,8">
-                    <StackPanel.Resources>
-                        <Style TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
-                            <Setter Property="Margin" Value="0,0,6,0" />
-                            <Setter Property="Padding" Value="4" />
-                        </Style>
-                    </StackPanel.Resources>
-                    <Button Click="Button_Click_1">
-                        <Button.Content>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Prev. String" Margin="8,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" Text="🡱" Foreground="SeaGreen" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Grid>
-                        </Button.Content>
-                    </Button>
-                    <Button Click="Button_Click">
-                        <Button.Content>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Next String" Margin="8,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" Text="🡳" Foreground="SeaGreen" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Grid>
-                        </Button.Content>
-                    </Button>
-                    <Grid Width="12"></Grid>
-                    <Button Click="Button_Click_2">
-                        <Button.Content>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Prev. Issue" Margin="8,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" Text="🡱" Foreground="DarkRed" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Grid>
-                        </Button.Content>
-                    </Button>
-                    <Button Click="Button_Click_3">
-                        <Button.Content>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Next Issue" Margin="8,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" Text="🡳" Foreground="DarkRed" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Grid>
-                        </Button.Content>
-                    </Button>
-                </StackPanel>
                 <RichTextBox x:Name="FileContents" Grid.Column="1" Grid.Row="1"
                              VerticalScrollBarVisibility="Visible"
                              IsInactiveSelectionHighlightEnabled="True"

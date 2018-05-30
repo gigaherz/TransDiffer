@@ -1,6 +1,4 @@
 
-using GDDL;
-
 namespace TransDiffer.Parser
 {
     public class Token : IContextProvider

@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Linq.Expressions;
-using GDDL;
 using TransDiffer.Parser.Exceptions;
 using TransDiffer.Parser.Structure;
 
@@ -558,117 +555,7 @@ namespace TransDiffer.Parser
                 throw new ParserException(this, $"Internal Error: Unexpected Look-Ahead {Lexer.Peek(0)}");
             }
         }
-
-#if false
-        private Element BasicElement()
-        {
-            if (Lexer.Peek() == Tokens.Ident) return IdentifierValue(PopExpected(Tokens.Ident));
-            if (Lexer.Peek() == Tokens.Integer) return IntValue(PopExpected(Tokens.Integer));
-            if (Lexer.Peek() == Tokens.HexInt) return IntValue(PopExpected(Tokens.HexInt), 16);
-            if (Lexer.Peek() == Tokens.Integer) return IntValue(PopExpected(Tokens.Integer));
-            if (Lexer.Peek() == Tokens.Double) return FloatValue(PopExpected(Tokens.Double));
-            if (Lexer.Peek() == Tokens.String) return StringValue(PopExpected(Tokens.String));
-
-            throw new ParserException(this, $"Internal Error: Unexpected Look-Ahead {Lexer.Peek(0)}");
-        }
-
-        private Element MenuStatement()
-        {
-            var name = PopExpected(Tokens.Ident, Tokens.String);
-
-            var n = name.Name == Tokens.Ident ? name.Text : Lexer.UnescapeString(name);
-
-            PopExpected(Tokens.EqualSign);
-
-            if (!prefix_basicElement())
-                throw new ParserException(this, $"Expected a basic element after EqualSign, found {Lexer.Peek()} instead");
-
-            var b = BasicElement();
-
-            b.Name = n;
-
-            return b;
-        }
-
-        private Set Set()
-        {
-            PopExpected(Tokens.LBrace);
-
-            var s = Structure.Element.Set();
-
-            while (Lexer.Peek() != Tokens.RBrace)
-            {
-                finishedWithRbrace = false;
-
-                if (!prefix_element())
-                    throw new ParserException(this, $"Expected element after LBRACE, found {Lexer.Peek()} instead");
-
-                s.Add(Element());
-
-                if (Lexer.Peek() != Tokens.RBrace)
-                {
-                    if (!finishedWithRbrace || (Lexer.Peek() == Tokens.Comma))
-                    {
-                        PopExpected(Tokens.Comma);
-                    }
-                }
-            }
-
-            PopExpected(Tokens.RBrace);
-
-            finishedWithRbrace = true;
-
-            return s;
-        }
-
-        private Set TypedSet()
-        {
-            var type = Identifier();
-
-            if (!prefix_set())
-                throw new ParserException(this, "Internal error");
-            var s = Set();
-
-            s.TypeName = type;
-
-            return s;
-        }
-#endif
-
-        private string Identifier()
-        {
-            if (Lexer.Peek() == Tokens.Ident) return PopExpected(Tokens.Ident).Text;
-
-            throw new ParserException(this, "Internal error");
-        }
-
-        public static Value NullValue(Token token)
-        {
-            return GDDL.Structure.Element.NullValue();
-        }
-
-        public static Value IntValue(Token token)
-        {
-            return GDDL.Structure.Element.IntValue(long.Parse(token.Text, CultureInfo.InvariantCulture));
-        }
-
-        public static Value IntValue(Token token, int _base)
-        {
-            return
-                GDDL.Structure.Element.IntValue(long.Parse(token.Text.Substring(2), NumberStyles.HexNumber,
-                    CultureInfo.InvariantCulture));
-        }
-
-        public static Value FloatValue(Token token)
-        {
-            return GDDL.Structure.Element.FloatValue(double.Parse(token.Text, CultureInfo.InvariantCulture));
-        }
-
-        public static Value StringValue(Token token)
-        {
-            return GDDL.Structure.Element.StringValue(Lexer.UnescapeString(token));
-        }
-
+        
         public ParsingContext GetParsingContext()
         {
             return Lexer.GetParsingContext();

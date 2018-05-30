@@ -25,7 +25,7 @@ namespace TransDiffer.Model
 
         public override string ToString()
         {
-            return $"{{{IdentifierToken.Process()}={Lexer.UnescapeString(TextValueToken)}}}";
+            return $"{{{IdentifierToken.Process()}={Lexer.UnescapeString(TextValueToken, true)}}}";
         }
     }
 }
