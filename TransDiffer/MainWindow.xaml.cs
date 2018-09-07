@@ -430,6 +430,22 @@ namespace TransDiffer
             }
         }
 
+        private void SetSelection(IEnumerable<FileLineItem> items)
+        {
+            FileContents.SelectedItems.Clear();
+            foreach (var item in items)
+                FileContents.SelectedItems.Add(item);
+        }
+
+        private void ScrollAndFocus()
+        {
+            FileContents.Focus();
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+            {
+                FileContents.ScrollIntoView(FileContents.SelectedItem);
+            }));
+        }
+
         private void FileContents_OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (FileContents.SelectedItems.Count != 1)
@@ -501,10 +517,10 @@ namespace TransDiffer
         {
             try
             {
-                if (FileContents.SelectedItems.Count != 1)
+                var p = (FileLineItem)FileContents.SelectedItem ?? CurrentFileLines.FirstOrDefault();
+                if (p == null)
                     return;
 
-                var p = (FileLineItem)FileContents.SelectedItem;
                 var r = p.Tag;
                 {
                     bool hadToLoop = r.Strings.Count == 0;
@@ -528,32 +544,14 @@ namespace TransDiffer
             }
         }
 
-        private void SetSelection(IEnumerable<FileLineItem> items = null)
-        {
-            if (items != null)
-            {
-                FileContents.SelectedItems.Clear();
-                foreach (var item in items)
-                    FileContents.SelectedItems.Add(item);
-            }
-        }
-        private void ScrollAndFocus()
-        {
-            FileContents.Focus();
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
-            {
-                FileContents.ScrollIntoView(FileContents.SelectedItem);
-            }));
-        }
-
         private void Button_Click_1(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (FileContents.SelectedItems.Count != 1)
+                var p = (FileLineItem)FileContents.SelectedItem ?? CurrentFileLines.FirstOrDefault();
+                if (p == null)
                     return;
 
-                var p = (FileLineItem)FileContents.SelectedItem;
                 var r = p.Tag;
                 {
                     bool hadToLoop = r.Strings.Count == 0;
@@ -581,10 +579,10 @@ namespace TransDiffer
         {
             try
             {
-                if (FileContents.SelectedItems.Count != 1)
+                var p = (FileLineItem)FileContents.SelectedItem ?? CurrentFileLines.FirstOrDefault();
+                if (p == null)
                     return;
 
-                var p = (FileLineItem)FileContents.SelectedItem;
                 var r = p.Tag;
                 {
                     bool hadToLoop = r.Strings.Count == 0;
@@ -618,10 +616,10 @@ namespace TransDiffer
         {
             try
             {
-                if (FileContents.SelectedItems.Count != 1)
+                var p = (FileLineItem)FileContents.SelectedItem ?? CurrentFileLines.FirstOrDefault();
+                if (p == null)
                     return;
 
-                var p = (FileLineItem)FileContents.SelectedItem;
                 var r = p.Tag;
                 {
                     bool hadToLoop = r.Strings.Count == 0;

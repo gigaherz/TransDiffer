@@ -8,9 +8,12 @@ namespace TransDiffer.Model
     public class TranslationStringReference
     {
         public LangFile Source { get; set; }
-        public ParsingContext Context { get; set; }
-        public ExpressionValue IdentifierToken { get; set; }
-        public Token TextValueToken { get; set; }
+        public ITranslationEntry Entry { get; set; }
+
+        public ParsingContext Context => Entry.Context;
+        public Token EntryType => Entry.EntryType;
+        public ExpressionValue Identifier => Entry.Identifier;
+        public Token TextValue => Entry.TextValue;
 
         public string Id { get; set; }
         public string Language { get; set; }
@@ -25,7 +28,7 @@ namespace TransDiffer.Model
 
         public override string ToString()
         {
-            return $"{{{IdentifierToken.Process()}={Lexer.UnescapeString(TextValueToken)}}}";
+            return $"{{{Identifier.Process()}={Lexer.UnescapeString(TextValue)}}}";
         }
     }
 }

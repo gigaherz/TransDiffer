@@ -230,8 +230,9 @@ namespace TransDiffer.Parser
             var mid = new MenuItemDefinition()
             {
                 Context = ctx.Context,
-                IdentifierToken = ident,
-                ValueToken = label
+                EntryType = ctx,
+                Identifier = ident,
+                TextValue = label
             };
 
             if (ctx.Name == Tokens.Popup)
@@ -262,6 +263,7 @@ namespace TransDiffer.Parser
             var de = new DialogDefinition();
             de.Identifier = ident;
             de.Context = ctx.Context;
+            de.EntryType = ctx;
 
             while (IsExpressionStartToken())
             {
@@ -298,7 +300,7 @@ namespace TransDiffer.Parser
                     {
                         PopExpected(Tokens.Caption);
                         var caption = PopExpected(Tokens.String);
-                        de.Caption = caption;
+                        de.TextValue = caption;
                         if (Lexer.Peek() == Tokens.Comma)
                             PopExpected(Tokens.Comma);
                     }
@@ -400,8 +402,9 @@ namespace TransDiffer.Parser
             var ste = new DialogControl
             {
                 Context = ctx.Context,
-                IdentifierToken = ident,
-                ValueToken = value
+                EntryType = ctx,
+                Identifier = ident,
+                TextValue = value
             };
 
             return ste;
@@ -437,8 +440,8 @@ namespace TransDiffer.Parser
             var ste = new StringTableEntry
             {
                 Context = ident.Context,
-                IdentifierToken = ident,
-                ValueToken = text
+                Identifier = ident,
+                TextValue = text
             };
 
             return ste;

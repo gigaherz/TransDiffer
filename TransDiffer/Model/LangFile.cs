@@ -88,13 +88,13 @@ namespace TransDiffer.Model
             List< StringOperation> operations = new List<StringOperation>();
             foreach (var line in NamedLines.Values)
             {
-                if (line.IdentifierToken != null)
+                if (line.Identifier != null)
                 {
                     var brush = line.String.MissingInLanguages.Count > 0 ? IdBrushMissing : IdBrush;
-                    int line0 = line.IdentifierToken.Context.Line-1;
-                    int col0 = line.IdentifierToken.Context.Column-1;
-                    int line1 = line.IdentifierToken.ContextEnd.Line-1;
-                    int col1 = line.IdentifierToken.ContextEnd.Column-1;
+                    int line0 = line.Identifier.Context.Line-1;
+                    int col0 = line.Identifier.Context.Column-1;
+                    int line1 = line.Identifier.ContextEnd.Line-1;
+                    int col1 = line.Identifier.ContextEnd.Column-1;
                     if (line0 == line1)
                     {
                         operations.Add(new StringOperation(line0, col0, col1, brush, line));
@@ -112,13 +112,13 @@ namespace TransDiffer.Model
                     }
                 }
 
-                if (line.TextValueToken != null)
+                if (line.TextValue != null)
                 {
                     var brush = TextBrush;
-                    int line0 = line.TextValueToken.Context.Line-1;
-                    int col0 = line.TextValueToken.Context.Column-1;
-                    int line1 = line.TextValueToken.ContextEnd.Line-1;
-                    int col1 = line.TextValueToken.ContextEnd.Column-1;
+                    int line0 = line.TextValue.Context.Line-1;
+                    int col0 = line.TextValue.Context.Column-1;
+                    int line1 = line.TextValue.ContextEnd.Line-1;
+                    int col1 = line.TextValue.ContextEnd.Column-1;
                     if (line0 == line1)
                     {
                         operations.Add(new StringOperation(line0, col0, col1, brush, line));

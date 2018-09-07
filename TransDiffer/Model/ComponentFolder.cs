@@ -88,7 +88,7 @@ namespace TransDiffer.Model
             var rc = parser.Parse();
             var currentLanguage = "NEUTRAL";
             var currentNeutralLanguage = "NEUTRAL";
-            var topLevelUnnamed = 0;
+            var topLevelUnnamed = new Dictionary<string, int>();
             foreach (var def in rc.Definition.Where(s => !(s is ParseErrorRecovery)))
             {
                 if (def is LanguageStatement s)
@@ -111,7 +111,7 @@ namespace TransDiffer.Model
                 }
                 else if(def is MenuDefinition md)
                 {
-                    var unnamedCount = 0;
+                    var unnamedCount = new Dictionary<string, int>();
                     var prefix = md.Identifier.Process();
                     foreach(var entry in md.Entries)
                     {
@@ -120,50 +120,45 @@ namespace TransDiffer.Model
                 }
                 else if (def is DialogDefinition dd)
                 {
-                    var parent = AddNamedString("", file, dd.Identifier, dd.Caption, dd.Context, ref topLevelUnnamed, currentLanguage, currentNeutralLanguage, null);
+                    var parent = AddNamedString("", file, dd, ref topLevelUnnamed, currentLanguage, currentNeutralLanguage, null);
 
-                    var unnamedCount = 0;
+                    var unnamedCount = new Dictionary<string, int>();
                     var prefix = dd.Identifier.Process();
                     foreach (var entry in dd.Entries)
                     {
-                        ProcessDialogControl(prefix, file, entry, ref unnamedCount, currentLanguage, currentNeutralLanguage, parent);
+                        ProcessEntry(prefix, file, entry, ref unnamedCount, currentLanguage, currentNeutralLanguage, parent);
                     }
                 }
                 else if (def is StringTable st)
                 {
-                    var unnamedCount = 0;
+                    var unnamedCount = new Dictionary<string, int>();
                     var prefix = "";
                     foreach (var entry in st.Entries)
                     {
-                        ProcessStringTableEntry(prefix, file, entry, ref unnamedCount, currentLanguage, currentNeutralLanguage);
+                        ProcessEntry(prefix, file, entry, ref unnamedCount, currentLanguage, currentNeutralLanguage, null);
                     }
                 }
             }
         }
 
-        private void ProcessDialogControl(string prefix, LangFile file, DialogControl dc, ref int unnamedCount, string clang, string nlang, TranslationStringReference parent)
+        private TranslationStringReference ProcessEntry(string prefix, LangFile file, ITranslationEntry entry, ref Dictionary<string, int> unnamedCount, string clang, string nlang, TranslationStringReference parent)
         {
-            AddNamedString(prefix, file, dc.IdentifierToken, dc.ValueToken, dc.Context, ref unnamedCount, clang, nlang, parent);
+            return AddNamedString(prefix, file, entry, ref unnamedCount, clang, nlang, parent);
         }
 
-        private void ProcessStringTableEntry(string prefix, LangFile file, StringTableEntry dc, ref int unnamedCount, string clang, string nlang)
+        private void ProcessMenuItem(string prefix, LangFile file, MenuItemDefinition mi, ref Dictionary<string, int> unnamedCount, string clang, string nlang, TranslationStringReference parent)
         {
-            AddNamedString(prefix, file, dc.IdentifierToken, dc.ValueToken, dc.Context, ref unnamedCount, clang, nlang, null);
-        }
+            var ns = ProcessEntry(prefix, file, mi, ref unnamedCount, clang, nlang, parent);
 
-        private void ProcessMenuItem(string prefix, LangFile file, MenuItemDefinition mi, ref int unnamedCount, string clang, string nlang, TranslationStringReference parent)
-        {
-            var ns = AddNamedString(prefix, file, mi.IdentifierToken, mi.ValueToken, mi.Context, ref unnamedCount, clang, nlang, parent);
-
-            var unnamedCount2 = 0;
-            prefix = $"{prefix}_{mi.IdentifierToken?.Process()}";
+            var unnamedCount2 = new Dictionary<string, int>();
+            prefix = $"{prefix}_{mi.Identifier?.Process()}";
             foreach (var entry in mi.Entries)
             {
                 ProcessMenuItem(prefix, file, entry, ref unnamedCount2, clang, nlang, ns);
             }
         }
 
-        private TranslationStringReference AddNamedString(string prefix, LangFile file, ExpressionValue identifier, Token valueToken, ParsingContext context, ref int unnamedCount, string clang, string nlang, TranslationStringReference parent)
+        private TranslationStringReference AddNamedString(string prefix, LangFile file, ITranslationEntry entry, ref Dictionary<string, int> unnamedCount, string clang, string nlang, TranslationStringReference parent)
         {
             SubLang sl;
             if (!SubLangs.TryGetValue(clang, out sl))
@@ -172,7 +167,7 @@ namespace TransDiffer.Model
                 SubLangs.Add(clang, sl);
             }
 
-            var stl = sl.AddNamedString(prefix, file, identifier, valueToken, context, ref unnamedCount, clang);
+            var stl = sl.AddNamedString(prefix, file, entry, ref unnamedCount, clang);
 
             if (!NamedStringsByName.TryGetValue(stl.Id, out var ns))
             {

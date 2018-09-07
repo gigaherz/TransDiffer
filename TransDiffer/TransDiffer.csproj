@@ -95,6 +95,7 @@
     <Compile Include="Parser\Structure\ResourceStatement.cs" />
     <Compile Include="Parser\Structure\StringTable.cs" />
     <Compile Include="Parser\Structure\StringTableEntry.cs" />
+    <Compile Include="Parser\Structure\ITranslationEntry.cs" />
     <Compile Include="Parser\Token.cs" />
     <Compile Include="Parser\Tokens.cs" />
     <Compile Include="Parser\Util\QueueList.cs" />

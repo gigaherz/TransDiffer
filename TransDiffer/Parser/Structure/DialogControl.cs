@@ -1,10 +1,11 @@
 ﻿namespace TransDiffer.Parser.Structure
 {
-    class DialogControl
+    class DialogControl : ITranslationEntry
     {
         public ParsingContext Context { get; set; }
+        public Token EntryType { get; set; }
 
-        public ExpressionValue IdentifierToken { get; set; }
-        public Token ValueToken { get; set; }
+        public ExpressionValue Identifier { get; set; }
+        public Token TextValue { get; set; }
     }
 }

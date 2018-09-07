@@ -1,10 +1,11 @@
 ﻿namespace TransDiffer.Parser.Structure
 {
-    class StringTableEntry
+    class StringTableEntry : ITranslationEntry
     {
         public ParsingContext Context { get; set; }
+        public Token EntryType => null;
 
-        public ExpressionValue IdentifierToken { get; set; }
-        public Token ValueToken { get; set; }
+        public ExpressionValue Identifier { get; set; }
+        public Token TextValue { get; set; }
     }
 }
