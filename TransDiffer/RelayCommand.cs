@@ -9,7 +9,7 @@ namespace TransDiffer
 
         public Action<object> Target
         {
-            get => _target;
+            get { return _target; }
             set
             {
                 if (_target == value) return;

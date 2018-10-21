@@ -70,7 +70,7 @@ namespace TransDiffer
 
         public string TemplateName
         {
-            get => _templateName;
+            get { return _templateName; }
             set
             {
                 if (value == _templateName) return;
@@ -293,7 +293,8 @@ namespace TransDiffer
 
         private void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            if (e.NewValue is LangFile f)
+            var f = e.NewValue as LangFile;
+            if (f != null)
             {
                 TranslationString str = null;
 
@@ -318,7 +319,8 @@ namespace TransDiffer
                 {
                     foreach (var sl in f.ContainedLangs)
                     {
-                        if (str.Translations.TryGetValue(sl.Name, out var ns))
+                        TranslationStringReference ns;
+                        if (str.Translations.TryGetValue(sl.Name, out ns))
                         {
                             Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
                             {
@@ -335,7 +337,8 @@ namespace TransDiffer
 
         private void ShowInExplorer_OnClick(object parameter)
         {
-            if (parameter is FileInfo file)
+            var file = parameter as FileInfo;
+            if (file != null)
             {
                 Process.Start("explorer.exe", "/select," + file.FullName);
             }
@@ -343,7 +346,8 @@ namespace TransDiffer
 
         private void OpenLangFile_OnClick(object parameter)
         {
-            if (parameter is FileInfo file)
+            var file = parameter as FileInfo;
+            if (file != null)
             {
                 Process.Start(new ProcessStartInfo(file.FullName) { Verb = "open", UseShellExecute = true });
             }
@@ -386,10 +390,12 @@ namespace TransDiffer
             var s = FileContents.SelectedItems.Cast<FileLineItem>().SelectMany(i => i.Tag.Strings).Distinct().ToList();
             if (s.Count == 1)
             {
-                CurrentDetails = s.First().String.CreateDetailsDocument(NavigateToTranslation, NavigateToFile);
+                var item = s.First();
+                CurrentDetails = item.String.CreateDetailsDocument(NavigateToTranslation, NavigateToFile);
             }
-            else if (FoldersTree.SelectedItem is LangFile f)
+            else if (FoldersTree.SelectedItem is LangFile)
             {
+                var f = FoldersTree.SelectedItem as LangFile;
                 CurrentDetails = f.CreateDetailsDocument(NavigateToTranslation);
             }
             else
@@ -400,10 +406,11 @@ namespace TransDiffer
 
         private void NavigateToFile(LangFile obj)
         {
-
-            if (FoldersTree.ItemContainerGenerator.ContainerFromItem(obj.Folder) is TreeViewItem tvi0)
+            var tvi0 = FoldersTree.ItemContainerGenerator.ContainerFromItem(obj.Folder) as TreeViewItem;
+            if (tvi0 != null)
             {
-                if (tvi0.ItemContainerGenerator.ContainerFromItem(obj) is TreeViewItem tvi)
+                var tvi = tvi0.ItemContainerGenerator.ContainerFromItem(obj) as TreeViewItem;
+                if (tvi != null)
                 {
                     tvi.IsSelected = true;
                 }
@@ -412,10 +419,11 @@ namespace TransDiffer
 
         private void NavigateToTranslation(TranslationStringReference obj)
         {
-
-            if (FoldersTree.ItemContainerGenerator.ContainerFromItem(obj.Source.Folder) is TreeViewItem tvi0)
+            var tvi0 = FoldersTree.ItemContainerGenerator.ContainerFromItem(obj.Source.Folder) as TreeViewItem;
+            if (tvi0 != null)
             {
-                if (tvi0.ItemContainerGenerator.ContainerFromItem(obj.Source) is TreeViewItem tvi)
+                var tvi = tvi0.ItemContainerGenerator.ContainerFromItem(obj.Source) as TreeViewItem;
+                if (tvi != null)
                 {
                     tvi.IsSelected = true;
                     Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
