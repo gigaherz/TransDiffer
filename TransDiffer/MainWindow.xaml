@@ -8,7 +8,7 @@
         mc:Ignorable="d"
         Title="{Binding CurrentTitleBar}" Height="600" Width="1200" ResizeMode="CanResizeWithGrip"
         Background="{x:Static SystemColors.ControlBrush}"
-        DataContext="{Binding RelativeSource={RelativeSource Self}}">
+        DataContext="{Binding RelativeSource={RelativeSource Self}}" Closing="Window_Closing">
     <Window.Resources>
         <Style x:Key="BaseButtonStyle" TargetType="Button">
             <Style.Setters>
@@ -100,6 +100,7 @@
                 </MenuItem>
                 <MenuItem Header="Options">
                     <MenuItem Header="External Editor..." Click="ExternalEditorMenuItem_Click"></MenuItem>
+                    <MenuItem IsCheckable="True" Header="Dialog Preview" IsChecked="{Binding IsDialogPreviewEnabled, Mode=OneWay}" Command="{Binding ToggleDialogPreview}" />
                     <MenuItem Header="TODO" />
                 </MenuItem>
                 <MenuItem Header="Help">

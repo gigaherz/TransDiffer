@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -33,6 +34,7 @@ namespace TransDiffer
         private string _externalEditorPath;
         private string _externalEditorCommandLinePattern;
         private string _fileSearchTerm;
+        private bool _dialogPreviewEnabled;
 
         public Action CancelScanning = null;
         public DirectoryInfo Root;
@@ -45,6 +47,8 @@ namespace TransDiffer
         public RelayCommand OpenLangFileCommand { get; }
         public RelayCommand ByFileCommand { get; }
         public RelayCommand ByIdCommand { get; }
+        public RelayCommand ToggleDialogPreview { get; }
+
 
         public string TreeSearchTerm
         {
@@ -157,6 +161,7 @@ namespace TransDiffer
         }
 
         public bool ShowDetailsPane => CurrentDetails != null && CurrentDetails.Count > 0;
+        public bool IsDialogPreviewEnabled => _dialogPreviewEnabled;
 
         public MainWindow()
         {
@@ -170,11 +175,12 @@ namespace TransDiffer
             {
                 TemplateName = "ByIdTemplate";
             });
-
+            ToggleDialogPreview = new RelayCommand(ToggleDialogPreview_OnClick);
 
             var cfg = new Settings();
             _externalEditorPath = cfg.ExternalEditorPath;
             _externalEditorCommandLinePattern = ExternalEditorDialog.NameToPattern(cfg.ExternalEditorCommandLineStyle, cfg.ExternalEditorCommandLinePattern);
+            _dialogPreviewEnabled = cfg.DialogPreview;
 
             InitializeComponent();
         }
@@ -353,6 +359,24 @@ namespace TransDiffer
             }
         }
 
+        private void ToggleDialogPreview_OnClick(object parameter)
+        {
+            _dialogPreviewEnabled = !_dialogPreviewEnabled;
+            Settings cfg = new Settings();
+            cfg.DialogPreview = _dialogPreviewEnabled;
+            cfg.Save();
+
+            if (_dialogPreviewEnabled)
+            {
+                FileContents_OnSelectionChanged(FileContents, new RoutedEventArgs());
+            }
+            else
+            {
+                _previewDefinition = null;
+                _previewWindow?.Close();
+            }
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         [NotifyPropertyChangedInvocator]
@@ -388,10 +412,24 @@ namespace TransDiffer
         private void FileContents_OnSelectionChanged(object sender, RoutedEventArgs e)
         {
             var s = FileContents.SelectedItems.Cast<FileLineItem>().SelectMany(i => i.Tag.Strings).Distinct().ToList();
+            DialogDefinition previewDlg = null;
             if (s.Count == 1)
             {
                 var item = s.First();
                 CurrentDetails = item.String.CreateDetailsDocument(NavigateToTranslation, NavigateToFile);
+                previewDlg = item.Entry as DialogDefinition;
+                if (previewDlg == null)
+                {
+                    var parent = item.String?.Parent;
+                    if (parent != null)
+                    {
+                        foreach (var parentRef in item.Source.NamedLines.Values)
+                        {
+                            if (parentRef.Id == parent.Name)
+                                previewDlg = parentRef.Entry as DialogDefinition;
+                        }
+                    }
+                }
             }
             else if (FoldersTree.SelectedItem is LangFile)
             {
@@ -401,6 +439,29 @@ namespace TransDiffer
             else
             {
                 CurrentDetails = new ObservableCollection<FileLineItem>();
+            }
+            UpdatePreviewDialog(previewDlg);
+        }
+
+        DialogDefinition _previewDefinition;
+        Preview.PreviewWindow _previewWindow;
+        private void UpdatePreviewDialog(DialogDefinition dlg)
+        {
+            if (!_dialogPreviewEnabled)
+                return;
+
+            if (_previewDefinition == dlg)
+                return;
+            _previewDefinition = dlg;
+            _previewWindow?.Close();
+            if (_previewDefinition != null)
+            {
+                _previewWindow = new Preview.PreviewWindow(dlg);
+                _previewWindow.Closed += (s, e) =>
+                {
+                    Interlocked.CompareExchange(ref _previewWindow, null, s as Preview.PreviewWindow);
+                };
+                _previewWindow.Show();
             }
         }
 
@@ -680,6 +741,11 @@ namespace TransDiffer
                 return;
 
             //FoldersTree.items
+        }
+
+        private void Window_Closing(object sender, CancelEventArgs e)
+        {
+            _previewWindow?.Close();
         }
     }
 }
