@@ -61,6 +61,26 @@ namespace TransDiffer
                 if (!string.IsNullOrWhiteSpace(SelectedStyle.CommandLine))
                     _commandLinePattern = SelectedStyle.CommandLine;
                 OnPropertyChanged(nameof(CommandLinePattern));
+
+                if (string.IsNullOrEmpty(ExternalEditorPath) && _selectedStyle.Name == "Notepad++")
+                {
+                    string[] paths = new string[]
+                    {
+                        @"%ProgramW6432%\Notepad++\notepad++.exe",
+                        @"%ProgramFiles(x86)%\Notepad++\notepad++.exe",
+                        @"%ProgramFiles%\Notepad++\notepad++.exe",
+                    };
+                    foreach(string path in paths)
+                    {
+                        string expanded = Environment.ExpandEnvironmentVariables(path);
+                        if (File.Exists(expanded))
+                        {
+                            ExternalEditorPath = expanded;
+                            break;
+                        }
+                    }
+                }
+
             }
         }
 
