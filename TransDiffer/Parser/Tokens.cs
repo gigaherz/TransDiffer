@@ -40,6 +40,7 @@ namespace TransDiffer.Parser
         Dialog,
         DialogEx,
         Style,
+        ExStyle,
         Caption,
         Font,
         Control,

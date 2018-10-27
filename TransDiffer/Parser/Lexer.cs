@@ -69,6 +69,7 @@ namespace TransDiffer.Parser
             Tuple.Create("Dialog", Tokens.Dialog),
             Tuple.Create("DialogEx", Tokens.DialogEx),
             Tuple.Create("Style", Tokens.Style),
+            Tuple.Create("ExStyle", Tokens.ExStyle),
             Tuple.Create("Caption", Tokens.Caption),
             Tuple.Create("Font", Tokens.Font),
             Tuple.Create("Control", Tokens.Control),
