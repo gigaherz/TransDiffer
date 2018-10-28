@@ -91,7 +91,8 @@ namespace TransDiffer.Model
             var topLevelUnnamed = new Dictionary<string, int>();
             foreach (var def in rc.Definition.Where(s => !(s is ParseErrorRecovery)))
             {
-                if (def is LanguageStatement s)
+                var s = def as LanguageStatement;
+                if (s != null)
                 {
                     var lang = s.Lang.Text.Substring("LANG_".Length);
                     var sublang = s.SubLang?.Text.Substring("SUBLANG_".Length) ?? currentLanguage;
@@ -108,8 +109,11 @@ namespace TransDiffer.Model
                         break;
                     }
                     currentNeutralLanguage = lang;
+                    continue;
                 }
-                else if(def is MenuDefinition md)
+
+                var md = def as MenuDefinition;
+                if (md != null)
                 {
                     var unnamedCount = new Dictionary<string, int>();
                     var prefix = md.Identifier.Process();
@@ -117,8 +121,11 @@ namespace TransDiffer.Model
                     {
                         ProcessMenuItem(prefix, file, entry, ref unnamedCount, currentLanguage, currentNeutralLanguage, null);
                     }
+                    continue;
                 }
-                else if (def is DialogDefinition dd)
+
+                var dd = def as DialogDefinition;
+                if (dd != null)
                 {
                     var parent = AddNamedString("", file, dd, ref topLevelUnnamed, currentLanguage, currentNeutralLanguage, null);
 
@@ -128,8 +135,11 @@ namespace TransDiffer.Model
                     {
                         ProcessEntry(prefix, file, entry, ref unnamedCount, currentLanguage, currentNeutralLanguage, parent);
                     }
+                    continue;
                 }
-                else if (def is StringTable st)
+
+                var st = def as StringTable;
+                if (st != null)
                 {
                     var unnamedCount = new Dictionary<string, int>();
                     var prefix = "";
@@ -137,6 +147,7 @@ namespace TransDiffer.Model
                     {
                         ProcessEntry(prefix, file, entry, ref unnamedCount, currentLanguage, currentNeutralLanguage, null);
                     }
+                    continue;
                 }
             }
         }
@@ -169,7 +180,8 @@ namespace TransDiffer.Model
 
             var stl = sl.AddNamedString(prefix, file, entry, ref unnamedCount, clang);
 
-            if (!NamedStringsByName.TryGetValue(stl.Id, out var ns))
+            TranslationString ns;
+            if (!NamedStringsByName.TryGetValue(stl.Id, out ns))
             {
                 ns = new TranslationString { Name = stl.Id, Parent = parent?.String };
                 NamedStrings.Add(ns);

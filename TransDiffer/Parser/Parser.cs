@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using TransDiffer.Parser.Exceptions;
 using TransDiffer.Parser.Structure;
@@ -252,6 +253,68 @@ namespace TransDiffer.Parser
             return mid;
         }
 
+        static int Solve(List<Token> tokens)
+        {
+            Debug.Assert(tokens.All(tok => tok.Name == Tokens.Minus || tok.Name == Tokens.Integer));
+            int value = 0;
+            bool bNeg = false;
+            foreach(var tok in tokens)
+            {
+                if (tok.Name == Tokens.Minus)
+                {
+                    Debug.Assert(bNeg == false);
+                    bNeg = true;
+                }
+                else
+                {
+                    int val;
+                    Debug.Assert(tok.Name == Tokens.Integer);
+                    bool bParse = int.TryParse(tok.Text, out val);
+                    Debug.Assert(bParse);
+                    if (bNeg)
+                    {
+                        bNeg = false;
+                        val *= -1;
+                    }
+                    value += val;
+                }
+            }
+            Debug.Assert(bNeg == false);
+            return value;
+        }
+
+        private System.Windows.Rect Dimensions()
+        {
+            int[] DlgPos = new int[4];
+            int cur = 0;
+            while (IsExpressionStartToken())
+            {
+                var expr = Expression();
+                DlgPos[cur] = Solve(expr.Tokens);
+
+                if (Lexer.Peek() == Tokens.Comma)
+                    PopExpected(Tokens.Comma);
+
+                if (++cur == DlgPos.Length)
+                {
+                    return new System.Windows.Rect(DlgPos[0], DlgPos[1], DlgPos[2], DlgPos[3]);
+                }
+            }
+            Debug.Assert(false);
+            return new System.Windows.Rect();
+        }
+
+        private ExpressionValue StyleStatement()
+        {
+            var expr = Expression();
+            Debug.Assert(expr.Tokens.All(
+                tok => tok.Name == Tokens.Pipe ||
+                tok.Name == Tokens.Not ||
+                tok.Name == Tokens.Ident ||
+                tok.Name == Tokens.Integer ||
+                tok.Name == Tokens.HexInt));
+            return expr;
+        }
 
         private DialogDefinition DialogStatement(ExpressionValue ident, bool isEx)
         {
@@ -265,9 +328,12 @@ namespace TransDiffer.Parser
             de.Context = ctx.Context;
             de.EntryType = ctx;
 
+            de.Dimensions = Dimensions();
+
             while (IsExpressionStartToken())
             {
-                var expr = Expression();
+                Expression();
+
                 // ignore, we don't need it
                 if (Lexer.Peek() == Tokens.Comma)
                     PopExpected(Tokens.Comma);
@@ -280,7 +346,15 @@ namespace TransDiffer.Parser
                 case Tokens.Style:
                     {
                         PopExpected(Tokens.Style);
-                        Expression();
+                        de.Style = StyleStatement();
+                        if (Lexer.Peek() == Tokens.Comma)
+                            PopExpected(Tokens.Comma);
+                    }
+                    break;
+                case Tokens.ExStyle:
+                    {
+                        PopExpected(Tokens.ExStyle);
+                        de.ExStyle = StyleStatement();
                         if (Lexer.Peek() == Tokens.Comma)
                             PopExpected(Tokens.Comma);
                     }
@@ -288,12 +362,16 @@ namespace TransDiffer.Parser
                 case Tokens.Font:
                     {
                         PopExpected(Tokens.Font);
-                        Expression();
+                        var size = PopExpected(Tokens.Double, Tokens.Integer);
+                        double sizeVal;
+                        double.TryParse(size.Text, out sizeVal);
                         if (Lexer.Peek() == Tokens.Comma)
                             PopExpected(Tokens.Comma);
-                        PopExpected(Tokens.String);
+                        var name = PopExpected(Tokens.String);
                         if (Lexer.Peek() == Tokens.Comma)
                             PopExpected(Tokens.Comma);
+
+                        de.Font = new Font() { Name = name.Text, Size = (float)sizeVal };
                     }
                     break;
                 case Tokens.Caption:
@@ -346,6 +424,10 @@ namespace TransDiffer.Parser
             ExpressionValue ident;
             Token value = null;
             Token ctx;
+            System.Windows.Rect Bounds = new System.Windows.Rect();
+            string ctrlType = null;
+            ExpressionValue Style = null;
+
             switch (Lexer.Peek())
             {
             case Tokens.PushButton:
@@ -374,6 +456,17 @@ namespace TransDiffer.Parser
                 ident = Expression();
                 if (Lexer.Peek() == Tokens.Comma)
                     PopExpected(Tokens.Comma);
+                if (ctx.Name == Tokens.Control)
+                {
+                    var ctrlTypeToken = PopExpected(Tokens.String, Tokens.Ident);
+                    if (ctrlTypeToken.Name == Tokens.String)
+                        ctrlType = ctrlTypeToken.Text;
+                    else
+                        ctrlType = ClassNames.Translate(ctrlTypeToken.Text);
+                    PopExpected(Tokens.Comma);
+                    Style = StyleStatement();
+                    PopExpected(Tokens.Comma);
+                }
                 break;
             case Tokens.Icon:
             case Tokens.ListBox:
@@ -383,10 +476,26 @@ namespace TransDiffer.Parser
                 ident = Expression();
                 if (Lexer.Peek() == Tokens.Comma)
                     PopExpected(Tokens.Comma);
+                if (ctx.Name == Tokens.Icon)
+                {
+                    value = ident.Tokens.First();
+                    ident = Expression();
+                    if (Lexer.Peek() == Tokens.Comma)
+                        PopExpected(Tokens.Comma);
+                }
                 break;
             default:
                 throw new ParserException(this, $"Internal Error: Unexpected Look-Ahead {Lexer.Peek(0)}");
             }
+
+            Bounds = Dimensions();
+            if (Style == null && IsExpressionStartToken())
+            {
+                Style = StyleStatement();
+                if (Lexer.Peek() == Tokens.Comma)
+                    PopExpected(Tokens.Comma);
+            }
+
             // Ignore all remaining expressions
             while (IsExpressionStartToken())
             {
@@ -396,15 +505,16 @@ namespace TransDiffer.Parser
                     PopExpected(Tokens.Comma);
             }
 
-            if (value == null)
-                return null;
 
             var ste = new DialogControl
             {
                 Context = ctx.Context,
                 EntryType = ctx,
                 Identifier = ident,
-                TextValue = value
+                TextValue = value,
+                Dimensions = Bounds,
+                GenericControlType = ctrlType ?? string.Empty,
+                Style = Style
             };
 
             return ste;

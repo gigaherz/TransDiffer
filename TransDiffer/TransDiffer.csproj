@@ -23,6 +23,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -32,6 +33,10 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.WindowsAPICodePack, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -99,6 +104,13 @@
     <Compile Include="Parser\Token.cs" />
     <Compile Include="Parser\Tokens.cs" />
     <Compile Include="Parser\Util\QueueList.cs" />
+    <Compile Include="Parser\ClassNames.cs" />
+    <Compile Include="Preview\DialogItemTemplateEx.cs" />
+    <Compile Include="Preview\DialogTemplateEx.cs" />
+    <Compile Include="Preview\PreviewWindow.cs" />
+    <Compile Include="Preview\sz_Or_Ord.cs" />
+    <Compile Include="Preview\Win32.cs" />
+    <Compile Include="Preview\WindowStyles.cs" />
     <Compile Include="RelayCommand.cs" />
     <Compile Include="SearchTermToVisibility.cs" />
     <Compile Include="SelectFolderDialog.xaml.cs">
@@ -144,6 +156,9 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="app.manifest">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

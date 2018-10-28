@@ -13,8 +13,10 @@ namespace TransDiffer
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            bool invert = parameter is String ss && ss == "True";
-            return (value is string s && s.Length > 0) != invert ? Visibility.Visible : Visibility.Hidden;
+            var ss = parameter as String;
+            bool invert = ss != null && ss == "True";
+            var s = value as string;
+            return (s != null && s.Length > 0) != invert ? Visibility.Visible : Visibility.Hidden;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

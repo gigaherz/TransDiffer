@@ -34,7 +34,8 @@ namespace TransDiffer.Model
             if (string.IsNullOrEmpty(id) || id == "-1" || id == "IDC_STATIC")
             {
                 var type_id = $"{type}_{id}";
-                unnamedCount.TryGetValue(type_id, out var count);
+                int count;
+                unnamedCount.TryGetValue(type_id, out count);
                 id = $"{type}_{id}_{count++}";
                 idNumbered = $"{prefix}{id}#0";
                 unnamedCount[type] = count + 1;

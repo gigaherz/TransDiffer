@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -33,6 +34,7 @@ namespace TransDiffer
         private string _externalEditorPath;
         private string _externalEditorCommandLinePattern;
         private string _fileSearchTerm;
+        private bool _dialogPreviewEnabled;
 
         public Action CancelScanning = null;
         public DirectoryInfo Root;
@@ -45,6 +47,8 @@ namespace TransDiffer
         public RelayCommand OpenLangFileCommand { get; }
         public RelayCommand ByFileCommand { get; }
         public RelayCommand ByIdCommand { get; }
+        public RelayCommand ToggleDialogPreview { get; }
+
 
         public string TreeSearchTerm
         {
@@ -70,7 +74,7 @@ namespace TransDiffer
 
         public string TemplateName
         {
-            get => _templateName;
+            get { return _templateName; }
             set
             {
                 if (value == _templateName) return;
@@ -157,6 +161,7 @@ namespace TransDiffer
         }
 
         public bool ShowDetailsPane => CurrentDetails != null && CurrentDetails.Count > 0;
+        public bool IsDialogPreviewEnabled => _dialogPreviewEnabled;
 
         public MainWindow()
         {
@@ -170,11 +175,12 @@ namespace TransDiffer
             {
                 TemplateName = "ByIdTemplate";
             });
-
+            ToggleDialogPreview = new RelayCommand(ToggleDialogPreview_OnClick);
 
             var cfg = new Settings();
             _externalEditorPath = cfg.ExternalEditorPath;
             _externalEditorCommandLinePattern = ExternalEditorDialog.NameToPattern(cfg.ExternalEditorCommandLineStyle, cfg.ExternalEditorCommandLinePattern);
+            _dialogPreviewEnabled = cfg.DialogPreview;
 
             InitializeComponent();
         }
@@ -293,7 +299,8 @@ namespace TransDiffer
 
         private void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            if (e.NewValue is LangFile f)
+            var f = e.NewValue as LangFile;
+            if (f != null)
             {
                 TranslationString str = null;
 
@@ -318,7 +325,8 @@ namespace TransDiffer
                 {
                     foreach (var sl in f.ContainedLangs)
                     {
-                        if (str.Translations.TryGetValue(sl.Name, out var ns))
+                        TranslationStringReference ns;
+                        if (str.Translations.TryGetValue(sl.Name, out ns))
                         {
                             Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
                             {
@@ -335,7 +343,8 @@ namespace TransDiffer
 
         private void ShowInExplorer_OnClick(object parameter)
         {
-            if (parameter is FileInfo file)
+            var file = parameter as FileInfo;
+            if (file != null)
             {
                 Process.Start("explorer.exe", "/select," + file.FullName);
             }
@@ -343,9 +352,28 @@ namespace TransDiffer
 
         private void OpenLangFile_OnClick(object parameter)
         {
-            if (parameter is FileInfo file)
+            var file = parameter as FileInfo;
+            if (file != null)
             {
                 Process.Start(new ProcessStartInfo(file.FullName) { Verb = "open", UseShellExecute = true });
+            }
+        }
+
+        private void ToggleDialogPreview_OnClick(object parameter)
+        {
+            _dialogPreviewEnabled = !_dialogPreviewEnabled;
+            Settings cfg = new Settings();
+            cfg.DialogPreview = _dialogPreviewEnabled;
+            cfg.Save();
+
+            if (_dialogPreviewEnabled)
+            {
+                FileContents_OnSelectionChanged(FileContents, new RoutedEventArgs());
+            }
+            else
+            {
+                _previewDefinition = null;
+                _previewWindow?.Close();
             }
         }
 
@@ -384,26 +412,66 @@ namespace TransDiffer
         private void FileContents_OnSelectionChanged(object sender, RoutedEventArgs e)
         {
             var s = FileContents.SelectedItems.Cast<FileLineItem>().SelectMany(i => i.Tag.Strings).Distinct().ToList();
+            DialogDefinition previewDlg = null;
             if (s.Count == 1)
             {
-                CurrentDetails = s.First().String.CreateDetailsDocument(NavigateToTranslation, NavigateToFile);
+                var item = s.First();
+                CurrentDetails = item.String.CreateDetailsDocument(NavigateToTranslation, NavigateToFile);
+                previewDlg = item.Entry as DialogDefinition;
+                if (previewDlg == null)
+                {
+                    var parent = item.String?.Parent;
+                    if (parent != null)
+                    {
+                        foreach (var parentRef in item.Source.NamedLines.Values)
+                        {
+                            if (parentRef.Id == parent.Name)
+                                previewDlg = parentRef.Entry as DialogDefinition;
+                        }
+                    }
+                }
             }
-            else if (FoldersTree.SelectedItem is LangFile f)
+            else if (FoldersTree.SelectedItem is LangFile)
             {
+                var f = FoldersTree.SelectedItem as LangFile;
                 CurrentDetails = f.CreateDetailsDocument(NavigateToTranslation);
             }
             else
             {
                 CurrentDetails = new ObservableCollection<FileLineItem>();
             }
+            UpdatePreviewDialog(previewDlg);
+        }
+
+        DialogDefinition _previewDefinition;
+        Preview.PreviewWindow _previewWindow;
+        private void UpdatePreviewDialog(DialogDefinition dlg)
+        {
+            if (!_dialogPreviewEnabled)
+                return;
+
+            if (_previewDefinition == dlg)
+                return;
+            _previewDefinition = dlg;
+            _previewWindow?.Close();
+            if (_previewDefinition != null)
+            {
+                _previewWindow = new Preview.PreviewWindow(dlg);
+                _previewWindow.Closed += (s, e) =>
+                {
+                    Interlocked.CompareExchange(ref _previewWindow, null, s as Preview.PreviewWindow);
+                };
+                _previewWindow.Show();
+            }
         }
 
         private void NavigateToFile(LangFile obj)
         {
-
-            if (FoldersTree.ItemContainerGenerator.ContainerFromItem(obj.Folder) is TreeViewItem tvi0)
+            var tvi0 = FoldersTree.ItemContainerGenerator.ContainerFromItem(obj.Folder) as TreeViewItem;
+            if (tvi0 != null)
             {
-                if (tvi0.ItemContainerGenerator.ContainerFromItem(obj) is TreeViewItem tvi)
+                var tvi = tvi0.ItemContainerGenerator.ContainerFromItem(obj) as TreeViewItem;
+                if (tvi != null)
                 {
                     tvi.IsSelected = true;
                 }
@@ -412,10 +480,11 @@ namespace TransDiffer
 
         private void NavigateToTranslation(TranslationStringReference obj)
         {
-
-            if (FoldersTree.ItemContainerGenerator.ContainerFromItem(obj.Source.Folder) is TreeViewItem tvi0)
+            var tvi0 = FoldersTree.ItemContainerGenerator.ContainerFromItem(obj.Source.Folder) as TreeViewItem;
+            if (tvi0 != null)
             {
-                if (tvi0.ItemContainerGenerator.ContainerFromItem(obj.Source) is TreeViewItem tvi)
+                var tvi = tvi0.ItemContainerGenerator.ContainerFromItem(obj.Source) as TreeViewItem;
+                if (tvi != null)
                 {
                     tvi.IsSelected = true;
                     Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
@@ -672,6 +741,11 @@ namespace TransDiffer
                 return;
 
             //FoldersTree.items
+        }
+
+        private void Window_Closing(object sender, CancelEventArgs e)
+        {
+            _previewWindow?.Close();
         }
     }
 }

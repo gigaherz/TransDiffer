@@ -103,7 +103,8 @@ namespace TransDiffer.Model
                     while (tParent.Parent != null)
                     {
                         tParent = tParent.Parent;
-                        if (tParent.Translations.TryGetValue(tParent.Name, out var pt))
+                        TranslationStringReference pt;
+                        if (tParent.Translations.TryGetValue(tParent.Name, out pt))
                         {
                             link.Click += (s, a) =>
                                 navigateToLine(pt);

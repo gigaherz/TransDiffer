@@ -17,7 +17,7 @@ namespace TransDiffer
 
         public string WorkspaceFolder
         {
-            get => _workspaceFolder;
+            get { return _workspaceFolder; }
             set
             {
                 if (value == _workspaceFolder) return;
