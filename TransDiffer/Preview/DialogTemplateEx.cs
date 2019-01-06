@@ -46,7 +46,7 @@ namespace TransDiffer.Preview
             {
                 if (mFont == null)
                 {
-                    mFont = new Font() { Name = "Segoe UI", Size = 12 };
+                    mFont = new Font { Name = "Segoe UI", Size = 12 };
                 }
                 bw.Write((ushort)mFont.Size);
                 bw.Write((ushort)0);        // weight

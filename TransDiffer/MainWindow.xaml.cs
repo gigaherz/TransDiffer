@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -194,7 +194,7 @@ namespace TransDiffer
         {
             IsScanningAllowed = false;
             Folders.Clear();
-            CancelScanning = RunInWorker((progress, cancellationPending, setCancelled) => ScanFolder(browsePath, progress, cancellationPending, setCancelled), (cancelled) =>
+            CancelScanning = RunInWorker((progress, cancellationPending, setCancelled) => ScanFolder(browsePath, progress, cancellationPending, setCancelled), cancelled =>
             {
                 if (cancelled)
                 {
@@ -298,7 +298,7 @@ namespace TransDiffer
 
         private void LoadLangs(DirectoryInfo dir)
         {
-            var lf = new ComponentFolder() { Root = Root, Directory = dir };
+            var lf = new ComponentFolder { Root = Root, Directory = dir };
             lf.Scan(dir);
 
             Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
