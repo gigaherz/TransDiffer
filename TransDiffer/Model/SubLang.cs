@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using TransDiffer.Parser;
 using TransDiffer.Parser.Structure;
 
 namespace TransDiffer.Model
@@ -48,7 +47,7 @@ namespace TransDiffer.Model
                 idNumbered = $"{prefix}{id}#{number}";
             }
 
-            return new TranslationStringReference() { Id = idNumbered, Language = clang, Source = file, Entry = entry };
+            return new TranslationStringReference { Id = idNumbered, Language = clang, Source = file, Entry = entry };
         }
 
         public void FinishLoading()

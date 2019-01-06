@@ -1,6 +1,6 @@
 ﻿namespace TransDiffer.Parser.Structure
 {
-    class DialogControl : ITranslationEntry
+    internal class DialogControl : ITranslationEntry
     {
         public ParsingContext Context { get; set; }
         public Token EntryType { get; set; }

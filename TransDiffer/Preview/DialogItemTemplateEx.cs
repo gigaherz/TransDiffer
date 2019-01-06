@@ -14,10 +14,6 @@ namespace TransDiffer.Preview
         internal sz_Or_Ord windowClass;
         internal sz_Or_Ord title;
 
-        internal DialogItemTemplateEx()
-        {
-        }
-
         internal void WriteToStream(BinaryWriter bw)
         {
             DialogTemplateEx.DWordAlign(bw);

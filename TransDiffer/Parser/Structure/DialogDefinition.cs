@@ -2,13 +2,13 @@
 
 namespace TransDiffer.Parser.Structure
 {
-    class Font
+    internal class Font
     {
         public string Name;
         public float Size;
     }
 
-    class DialogDefinition : ResourceStatement, ITranslationEntry
+    internal class DialogDefinition : ResourceStatement, ITranslationEntry
     {
         public Token EntryType { get; set; }
 

@@ -5,7 +5,7 @@ namespace TransDiffer.Parser
 {
     public static class ClassNames
     {
-        static readonly Dictionary<string, string> lookup = new Dictionary<string, string>()
+        static readonly Dictionary<string, string> lookup = new Dictionary<string, string>
         {
             { "PROGRESS_CLASSA", "msctls_progress32" },
             { "PROGRESS_CLASSW", "msctls_progress32" },
@@ -22,21 +22,15 @@ namespace TransDiffer.Parser
             { "WC_TREEVIEWA", "SysTreeView32" },
             { "WC_TREEVIEWW", "SysTreeView32" },
             { "WC_TREEVIEW", "SysTreeView32" },
-
         };
 
         public static string Translate(string ident)
         {
-            string result;
-            if (!lookup.TryGetValue(ident, out result))
-            {
-                Debug.WriteLine($"Unknown identifier: {ident}");
-                return "STATIC";
-            }
-            return result;
+            if (lookup.TryGetValue(ident, out var result))
+                return result;
+
+            Debug.WriteLine($"Unknown identifier: {ident}");
+            return "STATIC";
         }
-
-
-
     }
 }

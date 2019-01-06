@@ -39,7 +39,7 @@ namespace TransDiffer
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        private void BrowseForFolder_Click(object sender, System.Windows.RoutedEventArgs e)
+        private void BrowseForFolder_Click(object sender, RoutedEventArgs e)
         {
             CommonOpenFileDialog dialog = new CommonOpenFileDialog
             {
@@ -53,24 +53,26 @@ namespace TransDiffer
             }
         }
 
-        private void OkButton_Click(object sender, System.Windows.RoutedEventArgs e)
+        private void OkButton_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(WorkspaceFolder) || !Directory.Exists(WorkspaceFolder))
             {
-                if (MessageBox.Show($"The folder '{WorkspaceFolder}' does not exist, do you want to create it?", "Error", MessageBoxButton.OKCancel, MessageBoxImage.Exclamation, MessageBoxResult.OK) == MessageBoxResult.OK)
+                if (MessageBox.Show($"The folder '{WorkspaceFolder}' does not exist, do you want to create it?",
+                        "Error", MessageBoxButton.OKCancel, MessageBoxImage.Exclamation, MessageBoxResult.OK) !=
+                    MessageBoxResult.OK)
+                    return;
+
+                try
                 {
-                    try
+                    var info = Directory.CreateDirectory(WorkspaceFolder);
+                    if (info.Exists)
                     {
-                        var info = Directory.CreateDirectory(WorkspaceFolder);
-                        if (info.Exists)
-                        {
-                            DialogResult = true;
-                        }
+                        DialogResult = true;
                     }
-                    catch (IOException)
-                    {
-                        MessageBox.Show($"The folder could not be created.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
+                }
+                catch (IOException)
+                {
+                    MessageBox.Show("The folder could not be created.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else

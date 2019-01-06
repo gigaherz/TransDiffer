@@ -139,15 +139,16 @@ namespace TransDiffer.Parser
         {
             if (Lexer.Peek() == Tokens.Language) return LanguageStatement();
             if (Lexer.Peek() == Tokens.StringTable) return StringTableStatement();
-            if (IsExpressionStartToken())
-            {
-                var ident = Expression();
-                if (Lexer.Peek() == Tokens.Menu) return MenuStatement(ident);
-                if (Lexer.Peek() == Tokens.MenuEx) return MenuStatement(ident);
-                if (Lexer.Peek() == Tokens.Dialog) return DialogStatement(ident,false);
-                if (Lexer.Peek() == Tokens.DialogEx) return DialogStatement(ident,true);
-                //if (Lexer.Peek() == Tokens.Begin) return OrphanedBeginEndBlock();
-            }
+
+            if (!IsExpressionStartToken())
+                return new ParseErrorRecovery(Lexer.Pop());
+
+            var ident = Expression();
+            if (Lexer.Peek() == Tokens.Menu) return MenuStatement(ident);
+            if (Lexer.Peek() == Tokens.MenuEx) return MenuStatement(ident);
+            if (Lexer.Peek() == Tokens.Dialog) return DialogStatement(ident,false);
+            if (Lexer.Peek() == Tokens.DialogEx) return DialogStatement(ident,true);
+            //if (Lexer.Peek() == Tokens.Begin) return OrphanedBeginEndBlock();
             //throw new ParserException(this, $"Internal Error: Unexpected Look-Ahead {Lexer.Peek(0)}");
             return new ParseErrorRecovery(Lexer.Pop());
         }
@@ -182,9 +183,7 @@ namespace TransDiffer.Parser
 
             PopExpected(Tokens.LBrace, Tokens.Begin);
 
-            var st = new MenuDefinition();
-            st.Context = ctx.Context;
-            st.Identifier = ident;
+            var st = new MenuDefinition {Context = ctx.Context, Identifier = ident};
 
             while (Lexer.Peek() != Tokens.RBrace && Lexer.Peek() != Tokens.IdEnd)
             {
@@ -228,7 +227,7 @@ namespace TransDiffer.Parser
 
             }
 
-            var mid = new MenuItemDefinition()
+            var mid = new MenuItemDefinition
             {
                 Context = ctx.Context,
                 EntryType = ctx,
@@ -236,24 +235,24 @@ namespace TransDiffer.Parser
                 TextValue = label
             };
 
-            if (ctx.Name == Tokens.Popup)
-            {
-                PopExpected(Tokens.LBrace, Tokens.Begin);
-                
-                while (Lexer.Peek() != Tokens.RBrace && Lexer.Peek() != Tokens.IdEnd)
-                {
-                    var ste = MenuItemStatement();
-                    if (ste != null)
-                        mid.Entries.Add(ste);
-                }
+            if (ctx.Name != Tokens.Popup)
+                return mid;
 
-                PopExpected(Tokens.RBrace, Tokens.IdEnd);
+            PopExpected(Tokens.LBrace, Tokens.Begin);
+                
+            while (Lexer.Peek() != Tokens.RBrace && Lexer.Peek() != Tokens.IdEnd)
+            {
+                var ste = MenuItemStatement();
+                if (ste != null)
+                    mid.Entries.Add(ste);
             }
+
+            PopExpected(Tokens.RBrace, Tokens.IdEnd);
 
             return mid;
         }
 
-        static int Solve(List<Token> tokens)
+        private static int Solve(List<Token> tokens)
         {
             Debug.Assert(tokens.All(tok => tok.Name == Tokens.Minus || tok.Name == Tokens.Integer));
             int value = 0;
@@ -323,12 +322,14 @@ namespace TransDiffer.Parser
             if (Lexer.Peek() == Tokens.Discardable)
                 PopExpected(Tokens.Discardable);
 
-            var de = new DialogDefinition();
-            de.Identifier = ident;
-            de.Context = ctx.Context;
-            de.EntryType = ctx;
+            var de = new DialogDefinition
+            {
+                Identifier = ident,
+                Context = ctx.Context,
+                EntryType = ctx,
+                Dimensions = Dimensions()
+            };
 
-            de.Dimensions = Dimensions();
 
             while (IsExpressionStartToken())
             {
@@ -371,7 +372,7 @@ namespace TransDiffer.Parser
                         if (Lexer.Peek() == Tokens.Comma)
                             PopExpected(Tokens.Comma);
 
-                        de.Font = new Font() { Name = name.Text, Size = (float)sizeVal };
+                        de.Font = new Font { Name = name.Text, Size = (float)sizeVal };
                     }
                     break;
                 case Tokens.Caption:
@@ -395,7 +396,7 @@ namespace TransDiffer.Parser
                 case Tokens.Begin:
                     break;
                 default:
-                    throw new ParserException(this, $"Internal Error: Unexpected Look-Ahead {Lexer.Peek(0)}");
+                    throw new ParserException(this, $"Internal Error: Unexpected Look-Ahead {Lexer.Peek()}");
                 }
                 // Ignore all remaining expressions
                 while (IsExpressionStartToken())
@@ -424,7 +425,7 @@ namespace TransDiffer.Parser
             ExpressionValue ident;
             Token value = null;
             Token ctx;
-            System.Windows.Rect Bounds = new System.Windows.Rect();
+            System.Windows.Rect Bounds;
             string ctrlType = null;
             ExpressionValue Style = null;
 
@@ -527,8 +528,7 @@ namespace TransDiffer.Parser
                 PopExpected(Tokens.Discardable);
             PopExpected(Tokens.LBrace, Tokens.Begin);
 
-            var st = new StringTable();
-            st.Context = ctx.Context;
+            var st = new StringTable {Context = ctx.Context};
 
             while (Lexer.Peek() != Tokens.RBrace && Lexer.Peek() != Tokens.IdEnd)
             {
@@ -636,11 +636,11 @@ namespace TransDiffer.Parser
 
                 value.Tokens.Add(Lexer.Pop());
 
-                if (IsExpressionBinaryOperator())
-                {
-                    value.Tokens.Add(Lexer.Pop());
-                    RecurseExpression(value, allowStrings);
-                }
+                if (!IsExpressionBinaryOperator())
+                    return;
+
+                value.Tokens.Add(Lexer.Pop());
+                RecurseExpression(value, allowStrings);
             }
             else if (IsExpressionUnaryOperator() && IsExpressionStartToken(1, allowStrings))
             {
@@ -657,15 +657,15 @@ namespace TransDiffer.Parser
                 RecurseExpression(value, allowStrings);
                 value.Tokens.Add(PopExpected(Tokens.RParen));
 
-                if (IsExpressionBinaryOperator())
-                {
-                    value.Tokens.Add(Lexer.Pop());
-                    RecurseExpression(value, allowStrings);
-                }
+                if (!IsExpressionBinaryOperator())
+                    return;
+
+                value.Tokens.Add(Lexer.Pop());
+                RecurseExpression(value, allowStrings);
             }
             else
             {
-                throw new ParserException(this, $"Internal Error: Unexpected Look-Ahead {Lexer.Peek(0)}");
+                throw new ParserException(this, $"Internal Error: Unexpected Look-Ahead {Lexer.Peek()}");
             }
         }
         

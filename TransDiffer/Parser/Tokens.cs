@@ -1,4 +1,3 @@
-
 namespace TransDiffer.Parser
 {
     public enum Tokens
