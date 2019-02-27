@@ -43,12 +43,20 @@ namespace TransDiffer
         private LangFile _currentFile;
         public ObservableCollection<ComponentFolder> Folders { get; } = new ObservableCollection<ComponentFolder>();
 
-        public RelayCommand ShowInExplorerCommand { get; }
-        public RelayCommand OpenLangFileCommand { get; }
+        // Options
         public RelayCommand ByFileCommand { get; }
         public RelayCommand ByIdCommand { get; }
         public RelayCommand ToggleDialogPreview { get; }
 
+        // File tools
+        public RelayCommand ShowInExplorerCommand { get; }
+        public RelayCommand OpenLangFileCommand { get; }
+
+        // String editing commands
+        public RelayCommand ReplaceTextInAll { get; }
+        public RelayCommand ReplaceIdentifierInAll { get; }
+        public RelayCommand InsertAfterInAll { get; }
+        public RelayCommand InsertIntoAllMissing { get; }
 
         public string TreeSearchTerm
         {
@@ -176,6 +184,11 @@ namespace TransDiffer
                 TemplateName = "ByIdTemplate";
             });
             ToggleDialogPreview = new RelayCommand(ToggleDialogPreview_OnClick);
+
+            ReplaceTextInAll = new RelayCommand(CurrentString_ReplaceTextInAll_OnClick);
+            ReplaceIdentifierInAll = new RelayCommand(CurrentString_ReplaceIdentifierInAll_OnClick);
+            InsertAfterInAll = new RelayCommand(CurrentString_InsertAfterInAll_OnClick);
+            InsertIntoAllMissing = new RelayCommand(CurrentString_InsertIntoAllMissing_OnClick);
 
             var cfg = new Settings();
             _externalEditorPath = cfg.ExternalEditorPath;
@@ -377,6 +390,42 @@ namespace TransDiffer
             }
         }
 
+        private void CurrentString_ReplaceTextInAll_OnClick(object parameter)
+        {
+            var line = parameter as FileLineItem;
+            if (line != null)
+            {
+                // TODO
+            }
+        }
+        private void CurrentString_ReplaceIdentifierInAll_OnClick(object parameter)
+        {
+            var line = parameter as FileLineItem;
+            if (line != null)
+            {
+                // TODO
+            }
+        }
+        private void CurrentString_InsertAfterInAll_OnClick(object parameter)
+        {
+            var line = parameter as FileLineItem;
+            if (line != null)
+            {
+                // TODO
+            }
+        }
+        private void CurrentString_InsertIntoAllMissing_OnClick(object parameter)
+        {
+            var strings = FileContents.SelectedItems.OfType<FileLineItem>().SelectMany(i => i.Tag.Strings).Distinct().ToList();
+            foreach(var str in strings)
+            {
+                foreach(var lang in str.String.MissingInLanguages)
+                {
+                    // TODO
+                }
+            }
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         [NotifyPropertyChangedInvocator]
@@ -508,7 +557,7 @@ namespace TransDiffer
 
         private void ScrollAndFocus()
         {
-            FileContents.Focus();
+            //FileContents.Focus();
             Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
                 FileContents.ScrollIntoView(FileContents.SelectedItem);
@@ -746,6 +795,11 @@ namespace TransDiffer
         private void Window_Closing(object sender, CancelEventArgs e)
         {
             _previewWindow?.Close();
+        }
+
+        private void FileContents_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
         }
     }
 }

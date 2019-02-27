@@ -30,7 +30,8 @@ namespace TransDiffer
         private void OnPartsSourceChanged(object sender, EventArgs eventArgs)
         {
             Inlines.Clear();
-            Inlines.AddRange(PartsSource);
+            if (PartsSource != null)
+                Inlines.AddRange(PartsSource);
             // TODO: Handle ObservableCollection binding if provided
         }
     }

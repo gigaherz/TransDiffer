@@ -255,7 +255,7 @@ namespace TransDiffer.Parser
 
         static int Solve(List<Token> tokens)
         {
-            Debug.Assert(tokens.All(tok => tok.Name == Tokens.Minus || tok.Name == Tokens.Integer));
+            Debug.Assert(tokens.All(tok => tok.Name == Tokens.Minus || tok.Name == Tokens.Integer || tok.Name == Tokens.Ident));
             int value = 0;
             bool bNeg = false;
             foreach(var tok in tokens)
@@ -264,6 +264,10 @@ namespace TransDiffer.Parser
                 {
                     Debug.Assert(bNeg == false);
                     bNeg = true;
+                }
+                else if (tok.Name == Tokens.Ident)
+                {
+                    return 0;
                 }
                 else
                 {
