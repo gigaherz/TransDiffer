@@ -7,7 +7,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
 using TransDiffer.Annotations;
-using TransDiffer.Parser;
 using TransDiffer.Parser.Structure;
 
 namespace TransDiffer.Model
@@ -89,10 +88,10 @@ namespace TransDiffer.Model
             var currentLanguage = "NEUTRAL";
             var currentNeutralLanguage = "NEUTRAL";
             var topLevelUnnamed = new Dictionary<string, int>();
+
             foreach (var def in rc.Definition.Where(s => !(s is ParseErrorRecovery)))
             {
-                var s = def as LanguageStatement;
-                if (s != null)
+                if (def is LanguageStatement s)
                 {
                     var lang = s.Lang.Text.Substring("LANG_".Length);
                     var sublang = s.SubLang?.Text.Substring("SUBLANG_".Length) ?? currentLanguage;
@@ -112,8 +111,7 @@ namespace TransDiffer.Model
                     continue;
                 }
 
-                var md = def as MenuDefinition;
-                if (md != null)
+                if (def is MenuDefinition md)
                 {
                     var unnamedCount = new Dictionary<string, int>();
                     var prefix = md.Identifier.Process();
@@ -124,8 +122,7 @@ namespace TransDiffer.Model
                     continue;
                 }
 
-                var dd = def as DialogDefinition;
-                if (dd != null)
+                if (def is DialogDefinition dd)
                 {
                     var parent = AddNamedString("", file, dd, ref topLevelUnnamed, currentLanguage, currentNeutralLanguage, null);
 
@@ -138,16 +135,14 @@ namespace TransDiffer.Model
                     continue;
                 }
 
-                var st = def as StringTable;
-                if (st != null)
+                if (def is StringTable st)
                 {
                     var unnamedCount = new Dictionary<string, int>();
-                    var prefix = "";
+                    const string prefix = "";
                     foreach (var entry in st.Entries)
                     {
                         ProcessEntry(prefix, file, entry, ref unnamedCount, currentLanguage, currentNeutralLanguage, null);
                     }
-                    continue;
                 }
             }
         }
@@ -174,7 +169,7 @@ namespace TransDiffer.Model
             SubLang sl;
             if (!SubLangs.TryGetValue(clang, out sl))
             {
-                sl = new SubLang() { Source = file, Name = clang, Neutral = nlang };
+                sl = new SubLang { Source = file, Name = clang, Neutral = nlang };
                 SubLangs.Add(clang, sl);
             }
 
@@ -199,7 +194,7 @@ namespace TransDiffer.Model
         {
             foreach (var lang in dir.GetFiles("*.rc"))
             {
-                Files.Add(new LangFile() { Folder = this, File = lang });
+                Files.Add(new LangFile { Folder = this, File = lang });
             }
 
             ScanContents();

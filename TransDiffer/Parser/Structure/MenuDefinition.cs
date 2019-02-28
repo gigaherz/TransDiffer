@@ -2,14 +2,14 @@
 
 namespace TransDiffer.Parser.Structure
 {
-    class MenuDefinition : ResourceStatement
+    internal class MenuDefinition : ResourceStatement
     {
         public ExpressionValue Identifier { get; set; }
 
         public List<MenuItemDefinition> Entries { get; } = new List<MenuItemDefinition>();
     }
 
-    class MenuItemDefinition : ITranslationEntry
+    internal class MenuItemDefinition : ITranslationEntry
     {
         public ParsingContext Context { get; set; }
         public Token EntryType { get; set; }

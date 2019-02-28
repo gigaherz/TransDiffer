@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -9,7 +9,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -36,7 +35,7 @@ namespace TransDiffer
         private string _fileSearchTerm;
         private bool _dialogPreviewEnabled;
 
-        public Action CancelScanning = null;
+        public Action CancelScanning;
         public DirectoryInfo Root;
         private ObservableCollection<FileLineItem> _currentFileLines;
         private ObservableCollection<FileLineItem> _currentDetails;
@@ -208,7 +207,7 @@ namespace TransDiffer
         {
             IsScanningAllowed = false;
             Folders.Clear();
-            CancelScanning = RunInWorker((progress, cancellationPending, setCancelled) => ScanFolder(browsePath, progress, cancellationPending, setCancelled), (cancelled) =>
+            CancelScanning = RunInWorker((progress, cancellationPending, setCancelled) => ScanFolder(browsePath, progress, cancellationPending, setCancelled), cancelled =>
             {
                 if (cancelled)
                 {
@@ -219,7 +218,7 @@ namespace TransDiffer
                 {
                     var c = Folders.Count(f => f.HasErrors);
                     if (c > 0)
-                        StatusLabel.Text = $"Done. {c} folders have langauges with missing or obsolete strings.";
+                        StatusLabel.Text = $"Done. {c} folders have languages with missing or obsolete strings.";
                     else
                         StatusLabel.Text = "Done. No missing or obsolete strings found.";
                 }
@@ -273,7 +272,18 @@ namespace TransDiffer
         {
             progress(minPercent);
 
-            var enus = dir.GetFiles("en-US.rc");
+            var enus = new FileInfo[] { };
+
+            try
+            {
+                enus = dir.GetFiles("en-US.rc");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                return;
+            }
+            
             if (enus.Length > 0)
             {
                 if (!dir.FullName.Replace("\\", "/").Contains("/getuname/"))
@@ -301,7 +311,7 @@ namespace TransDiffer
 
         private void LoadLangs(DirectoryInfo dir)
         {
-            ComponentFolder lf = new ComponentFolder() { Root = Root, Directory = dir };
+            var lf = new ComponentFolder { Root = Root, Directory = dir };
             lf.Scan(dir);
 
             Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
@@ -312,61 +322,57 @@ namespace TransDiffer
 
         private void TreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            var f = e.NewValue as LangFile;
-            if (f != null)
+            if (!(e.NewValue is LangFile f))
+                return;
+
+            TranslationString str = null;
+
+            if (FileContents.SelectedItems.Count > 0)
             {
-                TranslationString str = null;
-
-                if (FileContents.SelectedItems.Count > 0)
+                if (FileContents.SelectedItem is FileLineItem cp && cp.Tag.Strings.Count > 0)
                 {
-                    var cp = FileContents.SelectedItem as FileLineItem;
-                    if (cp.Tag.Strings.Count > 0)
+                    var first = cp.Tag.Strings.First();
+                    if (first.Source.Folder == f.Folder)
                     {
-                        var first = cp.Tag.Strings.First();
-                        if (first.Source.Folder == f.Folder)
-                        {
-                            str = first.String;
-                        }
+                        str = first.String;
                     }
                 }
-
-                CurrentFileLines = f.BuildDocument();
-
-                FileContents_OnSelectionChanged(FileContents, new RoutedEventArgs(e.RoutedEvent));
-
-                if (str != null)
-                {
-                    foreach (var sl in f.ContainedLangs)
-                    {
-                        TranslationStringReference ns;
-                        if (str.Translations.TryGetValue(sl.Name, out ns))
-                        {
-                            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
-                            {
-                                NavigateToTranslation(ns);
-                            }));
-                            break;
-                        }
-                    }
-                }
-
-                CurrentFile = f;
             }
+
+            CurrentFileLines = f.BuildDocument();
+
+            FileContents_OnSelectionChanged(FileContents, new RoutedEventArgs(e.RoutedEvent));
+
+            if (str != null)
+            {
+                foreach (var sl in f.ContainedLangs)
+                {
+                    TranslationStringReference ns;
+                    if (!str.Translations.TryGetValue(sl.Name, out ns))
+                        continue;
+
+                    Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                    {
+                        NavigateToTranslation(ns);
+                    }));
+                    break;
+                }
+            }
+
+            CurrentFile = f;
         }
 
-        private void ShowInExplorer_OnClick(object parameter)
+        private static void ShowInExplorer_OnClick(object parameter)
         {
-            var file = parameter as FileInfo;
-            if (file != null)
+            if (parameter is FileInfo file)
             {
                 Process.Start("explorer.exe", "/select," + file.FullName);
             }
         }
 
-        private void OpenLangFile_OnClick(object parameter)
+        private static void OpenLangFile_OnClick(object parameter)
         {
-            var file = parameter as FileInfo;
-            if (file != null)
+            if (parameter is FileInfo file)
             {
                 Process.Start(new ProcessStartInfo(file.FullName) { Verb = "open", UseShellExecute = true });
             }
@@ -375,8 +381,7 @@ namespace TransDiffer
         private void ToggleDialogPreview_OnClick(object parameter)
         {
             _dialogPreviewEnabled = !_dialogPreviewEnabled;
-            Settings cfg = new Settings();
-            cfg.DialogPreview = _dialogPreviewEnabled;
+            var cfg = new Settings {DialogPreview = _dialogPreviewEnabled};
             cfg.Save();
 
             if (_dialogPreviewEnabled)
@@ -442,14 +447,15 @@ namespace TransDiffer
                 WorkspaceFolder = Root.FullName,
                 Owner = this
             };
-            if (dialog.ShowDialog() == true)
-            {
-                var browsePath = dialog.WorkspaceFolder;
-                set.WorkspaceFolder = browsePath;
-                set.Save();
 
-                ScanFolder(browsePath);
-            }
+            if (dialog.ShowDialog() != true)
+                return;
+
+            var browsePath = dialog.WorkspaceFolder;
+            set.WorkspaceFolder = browsePath;
+            set.Save();
+
+            ScanFolder(browsePath);
         }
 
         private void Hyperlink_OnClick(object sender, RoutedEventArgs e)
@@ -480,9 +486,8 @@ namespace TransDiffer
                     }
                 }
             }
-            else if (FoldersTree.SelectedItem is LangFile)
+            else if (FoldersTree.SelectedItem is LangFile f)
             {
-                var f = FoldersTree.SelectedItem as LangFile;
                 CurrentDetails = f.CreateDetailsDocument(NavigateToTranslation);
             }
             else
@@ -492,8 +497,8 @@ namespace TransDiffer
             UpdatePreviewDialog(previewDlg);
         }
 
-        DialogDefinition _previewDefinition;
-        Preview.PreviewWindow _previewWindow;
+        private DialogDefinition _previewDefinition;
+        private Preview.PreviewWindow _previewWindow;
         private void UpdatePreviewDialog(DialogDefinition dlg)
         {
             if (!_dialogPreviewEnabled)
@@ -503,49 +508,44 @@ namespace TransDiffer
                 return;
             _previewDefinition = dlg;
             _previewWindow?.Close();
-            if (_previewDefinition != null)
+
+            if (_previewDefinition == null)
+                return;
+
+            _previewWindow = new Preview.PreviewWindow(dlg);
+            _previewWindow.Closed += (s, e) =>
             {
-                _previewWindow = new Preview.PreviewWindow(dlg);
-                _previewWindow.Closed += (s, e) =>
-                {
-                    Interlocked.CompareExchange(ref _previewWindow, null, s as Preview.PreviewWindow);
-                };
-                _previewWindow.Show();
-            }
+                Interlocked.CompareExchange(ref _previewWindow, null, s as Preview.PreviewWindow);
+            };
+            _previewWindow.Show();
         }
 
         private void NavigateToFile(LangFile obj)
         {
             var tvi0 = FoldersTree.ItemContainerGenerator.ContainerFromItem(obj.Folder) as TreeViewItem;
-            if (tvi0 != null)
+            if (tvi0?.ItemContainerGenerator.ContainerFromItem(obj) is TreeViewItem tvi)
             {
-                var tvi = tvi0.ItemContainerGenerator.ContainerFromItem(obj) as TreeViewItem;
-                if (tvi != null)
-                {
-                    tvi.IsSelected = true;
-                }
+                tvi.IsSelected = true;
             }
         }
 
         private void NavigateToTranslation(TranslationStringReference obj)
         {
-            var tvi0 = FoldersTree.ItemContainerGenerator.ContainerFromItem(obj.Source.Folder) as TreeViewItem;
-            if (tvi0 != null)
+            if (!(FoldersTree.ItemContainerGenerator.ContainerFromItem(obj.Source.Folder) is TreeViewItem tvi0))
+                return;
+
+            if (!(tvi0.ItemContainerGenerator.ContainerFromItem(obj.Source) is TreeViewItem tvi))
+                return;
+
+            tvi.IsSelected = true;
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
-                var tvi = tvi0.ItemContainerGenerator.ContainerFromItem(obj.Source) as TreeViewItem;
-                if (tvi != null)
-                {
-                    tvi.IsSelected = true;
-                    Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
-                    {
-                        if (obj.Paragraphs.Count > 0)
-                        {
-                            SetSelection(obj.Paragraphs);
-                            ScrollAndFocus();
-                        }
-                    }));
-                }
-            }
+                if (obj.Paragraphs.Count <= 0)
+                    return;
+
+                SetSelection(obj.Paragraphs);
+                ScrollAndFocus();
+            }));
         }
 
         private void SetSelection(IEnumerable<FileLineItem> items)
@@ -571,31 +571,31 @@ namespace TransDiffer
 
             var p = (FileLineItem) FileContents.SelectedItem;
             var r = p.Tag;
+
+            if (TryLaunchExternalEditor(r))
+                return;
+
+            if (!OpenExternalEditorDialog())
+                return;
+
             if (!TryLaunchExternalEditor(r))
             {
-                if (OpenExternalEditorDialog())
-                {
-                    if (!TryLaunchExternalEditor(r))
-                    {
-                        MessageBox.Show("Could not launch external editor", "Error", MessageBoxButton.OK,
-                            MessageBoxImage.Error);
-                    }
-                }
+                MessageBox.Show("Could not launch external editor", "Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 
         private bool TryLaunchExternalEditor(SourceInfo r)
         {
-            if (File.Exists(_externalEditorPath))
-            {
-                var cmdline = _externalEditorCommandLinePattern
-                    .Replace("$file$", r.File.FullName)
-                    .Replace("$line$", r.Line.ToString());
-                var p = new Process { StartInfo = new ProcessStartInfo(_externalEditorPath, cmdline) };
-                return p.Start();
-            }
+            if (!File.Exists(_externalEditorPath))
+                return false;
 
-            return false;
+            var cmdline = _externalEditorCommandLinePattern
+                .Replace("$file$", r.File.FullName)
+                .Replace("$line$", r.Line.ToString());
+            var p = new Process { StartInfo = new ProcessStartInfo(_externalEditorPath, cmdline) };
+
+            return p.Start();
         }
 
         private void ExternalEditorMenuItem_Click(object sender, RoutedEventArgs e)
@@ -614,21 +614,20 @@ namespace TransDiffer
             };
             if (dialog.CommandLineStyle == "Custom")
                 dialog.CommandLinePattern = cfg.ExternalEditorCommandLinePattern;
-            if (dialog.ShowDialog() == true)
-            {
-                cfg.ExternalEditorPath = dialog.ExternalEditorPath;
-                cfg.ExternalEditorCommandLineStyle = dialog.CommandLineStyle;
-                cfg.ExternalEditorCommandLinePattern = dialog.CommandLinePattern;
-                cfg.Save();
+            if (dialog.ShowDialog() != true)
+                return false;
 
-                _externalEditorPath = cfg.ExternalEditorPath;
-                _externalEditorCommandLinePattern = ExternalEditorDialog.NameToPattern(cfg.ExternalEditorCommandLineStyle,
-                    cfg.ExternalEditorCommandLinePattern);
+            cfg.ExternalEditorPath = dialog.ExternalEditorPath;
+            cfg.ExternalEditorCommandLineStyle = dialog.CommandLineStyle;
+            cfg.ExternalEditorCommandLinePattern = dialog.CommandLinePattern;
+            cfg.Save();
 
-                return true;
-            }
+            _externalEditorPath = cfg.ExternalEditorPath;
+            _externalEditorCommandLinePattern = ExternalEditorDialog.NameToPattern(cfg.ExternalEditorCommandLineStyle,
+                cfg.ExternalEditorCommandLinePattern);
 
-            return false;
+            return true;
+
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)

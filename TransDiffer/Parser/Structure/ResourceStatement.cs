@@ -1,5 +1,4 @@
-﻿
-namespace TransDiffer.Parser.Structure
+﻿namespace TransDiffer.Parser.Structure
 {
     public abstract class ResourceStatement
     {

@@ -1,20 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using TransDiffer.Annotations;
 
@@ -62,23 +52,24 @@ namespace TransDiffer
                     _commandLinePattern = SelectedStyle.CommandLine;
                 OnPropertyChanged(nameof(CommandLinePattern));
 
-                if (string.IsNullOrEmpty(ExternalEditorPath) && _selectedStyle.Name == "Notepad++")
+                if (!string.IsNullOrEmpty(ExternalEditorPath) || _selectedStyle.Name != "Notepad++")
+                    return;
+
+                string[] paths = {
+                    @"%ProgramW6432%\Notepad++\notepad++.exe",
+                    @"%ProgramFiles(x86)%\Notepad++\notepad++.exe",
+                    @"%ProgramFiles%\Notepad++\notepad++.exe",
+                };
+
+                foreach(var path in paths)
                 {
-                    string[] paths = new string[]
-                    {
-                        @"%ProgramW6432%\Notepad++\notepad++.exe",
-                        @"%ProgramFiles(x86)%\Notepad++\notepad++.exe",
-                        @"%ProgramFiles%\Notepad++\notepad++.exe",
-                    };
-                    foreach(string path in paths)
-                    {
-                        string expanded = Environment.ExpandEnvironmentVariables(path);
-                        if (File.Exists(expanded))
-                        {
-                            ExternalEditorPath = expanded;
-                            break;
-                        }
-                    }
+                    var expanded = Environment.ExpandEnvironmentVariables(path);
+
+                    if (!File.Exists(expanded))
+                        continue;
+
+                    ExternalEditorPath = expanded;
+                    break;
                 }
 
             }

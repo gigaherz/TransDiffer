@@ -8,14 +8,14 @@ using TransDiffer.Parser.Structure;
 
 namespace TransDiffer.Preview
 {
-    class PreviewWindow
+    internal class PreviewWindow
     {
         public event EventHandler Closed;
-        private DialogTemplateEx mTemplate;
+        private readonly DialogTemplateEx mTemplate;
         private IntPtr mWnd;
-        private Win32.DialogProcDelegate mDelegate;
+        private readonly Win32.DialogProcDelegate mDelegate;
 
-        static string Cleanup(string input)
+        private static string Cleanup(string input)
         {
             input = input ?? string.Empty;
             if (input.StartsWith("\"") && input.EndsWith("\""))
@@ -24,12 +24,12 @@ namespace TransDiffer.Preview
         }
 
         //https://stackoverflow.com/a/16736914/4928207
-        static class EnumConverter<TEnum> where TEnum : struct, IConvertible
+        private static class EnumConverter<TEnum> where TEnum : struct, IConvertible
         {
             public static readonly Func<uint, TEnum> ConvertToEnum = GenerateConverter1();
             public static readonly Func<TEnum, uint> ConvertFromEnum = GenerateConverter2();
 
-            static Func<uint, TEnum> GenerateConverter1()
+            private static Func<uint, TEnum> GenerateConverter1()
             {
                 var parameter = Expression.Parameter(typeof(uint));
                 var dynamicMethod = Expression.Lambda<Func<uint, TEnum>>(
@@ -37,7 +37,8 @@ namespace TransDiffer.Preview
                     parameter);
                 return dynamicMethod.Compile();
             }
-            static Func<TEnum, uint> GenerateConverter2()
+
+            private static Func<TEnum, uint> GenerateConverter2()
             {
                 var parameter = Expression.Parameter(typeof(TEnum));
                 var dynamicMethod = Expression.Lambda<Func<TEnum, uint>>(
@@ -47,7 +48,7 @@ namespace TransDiffer.Preview
             }
         }
 
-        static uint ReadValue<T>(Token tok) where T : struct, IConvertible
+        private static uint ReadValue<T>(Token tok) where T : struct, IConvertible
         {
             if (tok.Name == Tokens.Ident)
             {
@@ -56,13 +57,12 @@ namespace TransDiffer.Preview
                 {
                     return EnumConverter<T>.ConvertFromEnum(style);
                 }
-                else
-                {
-                    Debug.WriteLine($"Unknown style: {tok.Text}");
-                    return 0;
-                }
+
+                Debug.WriteLine($"Unknown style: {tok.Text}");
+                return 0;
             }
-            else if (tok.Name == Tokens.Integer)
+
+            if (tok.Name == Tokens.Integer)
             {
                 uint style;
                 if (uint.TryParse(tok.Text, out style))
@@ -72,14 +72,12 @@ namespace TransDiffer.Preview
                 Debug.WriteLine($"Unable to parse: {tok.Text}");
                 return 0;
             }
-            else
-            {
-                Debug.Assert(false);
-                return 0;
-            }
+
+            Debug.Assert(false);
+            return 0;
         }
 
-        static void ToStyle<T>(ExpressionValue expression, ref T controlStyle) where T : struct, IConvertible
+        private static void ToStyle<T>(ExpressionValue expression, ref T controlStyle) where T : struct, IConvertible
         {
             if (expression == null)
                 return;
@@ -117,7 +115,7 @@ namespace TransDiffer.Preview
         static readonly sz_Or_Ord g_ScrollBar = new sz_Or_Ord(0x84);
         static readonly sz_Or_Ord g_ComboBox = new sz_Or_Ord(0x85);
 
-        static sz_Or_Ord ControlTypeToClass(Tokens type, string typeName, ref WindowStyles style)
+        private static sz_Or_Ord ControlTypeToClass(Tokens type, string typeName, ref WindowStyles style)
         {
             switch (type)
             {
@@ -179,7 +177,7 @@ namespace TransDiffer.Preview
 
         public PreviewWindow(DialogDefinition dlg)
         {
-            mDelegate = new Win32.DialogProcDelegate(DialogProc);
+            mDelegate = DialogProc;
 
             mTemplate = new DialogTemplateEx();
             ToStyle(dlg.ExStyle, ref mTemplate.exStyle);
@@ -199,21 +197,23 @@ namespace TransDiffer.Preview
             mTemplate.title = Cleanup(dlg.TextValue.Text);
             if (dlg.Font != null)
             {
-                mTemplate.mFont = new Font() { Name = Cleanup(dlg.Font.Name), Size = dlg.Font.Size };
+                mTemplate.mFont = new Font { Name = Cleanup(dlg.Font.Name), Size = dlg.Font.Size };
             }
 
             uint id = 1;
 
             foreach (var dlgCtrl in dlg.Entries)
             {
-                var ctrl = new DialogItemTemplateEx();
-                ctrl.exStyle = 0;
-                ctrl.style = 0;
-                ctrl.x = (short)dlgCtrl.Dimensions.Left;
-                ctrl.y = (short)dlgCtrl.Dimensions.Top;
-                ctrl.cx = (short)dlgCtrl.Dimensions.Width;
-                ctrl.cy = (short)dlgCtrl.Dimensions.Height;
-                ctrl.id = id++;
+                var ctrl = new DialogItemTemplateEx
+                {
+                    exStyle = 0,
+                    style = 0,
+                    x = (short) dlgCtrl.Dimensions.Left,
+                    y = (short) dlgCtrl.Dimensions.Top,
+                    cx = (short) dlgCtrl.Dimensions.Width,
+                    cy = (short) dlgCtrl.Dimensions.Height,
+                    id = id++
+                };
                 ctrl.windowClass = ControlTypeToClass(dlgCtrl.EntryType.Name, Cleanup(dlgCtrl.GenericControlType), ref ctrl.style);
 
                 ToStyle(dlgCtrl.Style, ref ctrl.style);
@@ -236,21 +236,21 @@ namespace TransDiffer.Preview
 
         public void Show()
         {
-            if (mWnd == IntPtr.Zero)
+            if (mWnd != IntPtr.Zero)
+                return;
+
+            byte[] data = mTemplate.CreateTemplate();
+            IntPtr hInstance = Win32.GetModuleHandle(null);
+            IntPtr wnd = Win32.CreateDialogIndirectParamW(hInstance, data, IntPtr.Zero, mDelegate, IntPtr.Zero);
+            int error = Marshal.GetLastWin32Error();
+            if (wnd != IntPtr.Zero)
             {
-                byte[] data = mTemplate.CreateTemplate();
-                IntPtr hInstance = Win32.GetModuleHandle(null);
-                IntPtr wnd = Win32.CreateDialogIndirectParamW(hInstance, data, IntPtr.Zero, mDelegate, IntPtr.Zero);
-                int error = Marshal.GetLastWin32Error();
-                if (wnd != IntPtr.Zero)
-                {
-                    mWnd = wnd;
-                }
-                else
-                {
-                    string errorMessage = new System.ComponentModel.Win32Exception(error).Message;
-                    Debug.WriteLine($"Window creation failed: {error}: {errorMessage}");
-                }
+                mWnd = wnd;
+            }
+            else
+            {
+                string errorMessage = new System.ComponentModel.Win32Exception(error).Message;
+                Debug.WriteLine($"Window creation failed: {error}: {errorMessage}");
             }
         }
 
@@ -262,7 +262,7 @@ namespace TransDiffer.Preview
             }
         }
 
-        IntPtr DialogProc(IntPtr hwndDlg, uint uMsg, IntPtr wParam, IntPtr lParam)
+        private IntPtr DialogProc(IntPtr hwndDlg, uint uMsg, IntPtr wParam, IntPtr lParam)
         {
             if (uMsg == Win32.WM_DESTROY)
             {

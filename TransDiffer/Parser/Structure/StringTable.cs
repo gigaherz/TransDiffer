@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace TransDiffer.Parser.Structure
 {
-    class StringTable : ResourceStatement
+    internal class StringTable : ResourceStatement
     {
         public List<StringTableEntry> Entries { get; } = new List<StringTableEntry>();
     }

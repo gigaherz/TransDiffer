@@ -3,7 +3,7 @@
 namespace TransDiffer.Preview
 {
     [Flags]
-    enum WindowStyles : uint
+    internal enum WindowStyles : uint
     {
         None = 0,
 
@@ -37,8 +37,7 @@ namespace TransDiffer.Preview
         WS_OVERLAPPEDWINDOW = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX,
         WS_POPUPWINDOW = WS_POPUP | WS_BORDER | WS_SYSMENU,
         WS_CHILDWINDOW = WS_CHILD,
-
-
+        
         // Dialog styles
 
         DS_ABSALIGN = 0x01,
@@ -58,9 +57,6 @@ namespace TransDiffer.Preview
         DS_CONTEXTHELP = 0x2000,
 
         DS_SHELLFONT = (DS_SETFONT | DS_FIXEDSYS),
-
-
-
 
         // Static control styles
         SS_LEFT = 0x00000000,
@@ -84,7 +80,6 @@ namespace TransDiffer.Preview
         SS_ETCHEDVERT = 0x00000011,
         SS_ETCHEDFRAME = 0x00000012,
         SS_TYPEMASK = 0x0000001F,
-
 
         SS_REALSIZECONTROL = 0x00000040,
 
@@ -131,7 +126,6 @@ namespace TransDiffer.Preview
         BS_FLAT = 0x00008000,
         BS_RIGHTBUTTON = BS_LEFTTEXT,
 
-
         // Combo box styles
         CBS_SIMPLE = 0x0001,
         CBS_DROPDOWN = 0x0002,
@@ -165,7 +159,6 @@ namespace TransDiffer.Preview
         LBS_NOSEL = 0x4000,
         LBS_COMBOBOX = 0x8000,
         LBS_STANDARD = (LBS_NOTIFY | LBS_SORT | WS_VSCROLL | WS_BORDER),
-
 
         // Listview styles
         LVS_ICON = 0x0000,
@@ -206,15 +199,12 @@ namespace TransDiffer.Preview
         ES_READONLY = 0x0800,
         ES_WANTRETURN = 0x1000,
         ES_NUMBER = 0x2000,
-
-
     }
 
     [Flags]
-    enum WindowStylesEx : uint
+    internal enum WindowStylesEx : uint
     {
         //Extended Window Styles
-
         WS_EX_DLGMODALFRAME = 0x00000001,
         WS_EX_NOPARENTNOTIFY = 0x00000004,
         WS_EX_TOPMOST = 0x00000008,
@@ -222,7 +212,6 @@ namespace TransDiffer.Preview
         WS_EX_TRANSPARENT = 0x00000020,
 
         //#if(WINVER >= 0x0400)
-
         WS_EX_MDICHILD = 0x00000040,
         WS_EX_TOOLWINDOW = 0x00000080,
         WS_EX_WINDOWEDGE = 0x00000100,
@@ -245,22 +234,17 @@ namespace TransDiffer.Preview
         //#endif /* WINVER >= 0x0400 */
 
         //#if(WIN32WINNT >= 0x0500)
-
         WS_EX_LAYERED = 0x00080000,
         //#endif /* WIN32WINNT >= 0x0500 */
 
         //#if(WINVER >= 0x0500)
-
-        WS_EX_NOINHERITLAYOUT = 0x00100000, // Disable inheritence of mirroring by children
+        WS_EX_NOINHERITLAYOUT = 0x00100000, // Disable inheritance of mirroring by children
         WS_EX_LAYOUTRTL = 0x00400000, // Right to left mirroring
-                                      //#endif /* WINVER >= 0x0500 */
+        //#endif /* WINVER >= 0x0500 */
 
         //#if(WIN32WINNT >= 0x0500)
-
         WS_EX_COMPOSITED = 0x02000000,
         WS_EX_NOACTIVATE = 0x08000000,
         //#endif /* WIN32WINNT >= 0x0500 */
     }
-
-
 }

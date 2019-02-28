@@ -15,15 +15,11 @@ namespace TransDiffer.Preview
         internal sz_Or_Ord windowClass = null;
         internal string title;
 
-        internal Font mFont = null;
+        internal Font mFont;
 
         internal short x, y, cx, cy;
 
         internal List<DialogItemTemplateEx> controls = new List<DialogItemTemplateEx>();
-
-        internal DialogTemplateEx()
-        {
-        }
 
         internal byte[] CreateTemplate()
         {
@@ -50,7 +46,7 @@ namespace TransDiffer.Preview
             {
                 if (mFont == null)
                 {
-                    mFont = new Font() { Name = "Segoe UI", Size = 12 };
+                    mFont = new Font { Name = "Segoe UI", Size = 12 };
                 }
                 bw.Write((ushort)mFont.Size);
                 bw.Write((ushort)0);        // weight
@@ -59,9 +55,10 @@ namespace TransDiffer.Preview
                 WriteString(bw, (mFont.Name)); // typeface
             }
             DWordAlign(bw);
-            for (int n = 0; n < controls.Count; ++n)
+
+            foreach (var control in controls)
             {
-                controls[n].WriteToStream(bw);
+                control.WriteToStream(bw);
             }
 
             return ms.ToArray();
@@ -90,11 +87,11 @@ namespace TransDiffer.Preview
         {
             long pos = ms.BaseStream.Position;
             long advance = pos % 4;
-            if (advance != 0)
-            {
-                byte[] dum = new byte[4];
-                ms.Write(dum, 0, 4 - (int)advance);
-            }
+            if (advance == 0)
+                return;
+
+            byte[] dum = new byte[4];
+            ms.Write(dum, 0, 4 - (int)advance);
         }
 
         internal static void WriteString(BinaryWriter bw, string str)

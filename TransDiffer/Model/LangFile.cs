@@ -5,8 +5,6 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using TransDiffer.Annotations;
@@ -56,11 +54,11 @@ namespace TransDiffer.Model
 
         private class StringOperation
         {
-            public int line;
-            public int startColumn;
-            public int endColumn;
-            public Brush colorToApply;
-            public TranslationStringReference tag;
+            public readonly int line;
+            public readonly int startColumn;
+            public readonly int endColumn;
+            public readonly Brush colorToApply;
+            public readonly TranslationStringReference tag;
 
             public StringOperation(int line, int startColumn, int endColumn, Brush colorToApply, TranslationStringReference tag)
             {
@@ -85,7 +83,7 @@ namespace TransDiffer.Model
             var IdBrush = new SolidColorBrush(Color.FromRgb(160, 255, 160));
             var IdBrushMissing = new SolidColorBrush(Color.FromRgb(255, 180, 140));
 
-            List< StringOperation> operations = new List<StringOperation>();
+            var operations = new List<StringOperation>();
             foreach (var line in NamedLines.Values)
             {
                 if (line.Identifier != null)
@@ -103,7 +101,7 @@ namespace TransDiffer.Model
                     {
                         var colT = lines[line0].Length;
                         operations.Add(new StringOperation(line0, col0, colT, brush, line));
-                        for(int i=line0+1;i<line1;i++)
+                        for(int i=line0 + 1; i < line1; i++)
                         {
                             colT = lines[i].Length;
                             operations.Add(new StringOperation(i, 0, colT, brush, line));
@@ -147,13 +145,12 @@ namespace TransDiffer.Model
             
             SourceInfo previousSourceInfo = null;
             int j = 0;
-            for(int i=0;i<lines.Length;i++)
+            for(int i=0; i < lines.Length; i++)
             {
-                var sourceInfo = new SourceInfo() { File = File, Line = i + 1 };
-                sourceInfo.Previous = previousSourceInfo;
+                var sourceInfo = new SourceInfo {File = File, Line = i + 1, Previous = previousSourceInfo};
                 if (previousSourceInfo != null)
                     previousSourceInfo.Next = sourceInfo;
-                var para = new FileLineItem()
+                var para = new FileLineItem
                 {
                     Tag = sourceInfo
                 };

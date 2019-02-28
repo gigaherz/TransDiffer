@@ -2,13 +2,13 @@
 
 namespace TransDiffer.Parser.Structure
 {
-    class Font
+    internal class Font
     {
         public string Name;
         public float Size;
     }
 
-    class DialogDefinition : ResourceStatement, ITranslationEntry
+    internal class DialogDefinition : ResourceStatement, ITranslationEntry
     {
         public Token EntryType { get; set; }
 
@@ -16,7 +16,7 @@ namespace TransDiffer.Parser.Structure
         public Token TextValue { get; set; }
 
         public System.Windows.Rect Dimensions { get; set; }
-        public Font Font { get; set; } = new Font() { Name = "Segoe UI", Size = 12 };
+        public Font Font { get; set; } = new Font { Name = "Segoe UI", Size = 12 };
         public ExpressionValue Style { get; set; }
         public ExpressionValue ExStyle { get; set; }
 

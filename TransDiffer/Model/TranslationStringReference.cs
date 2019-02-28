@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Windows.Documents;
 using TransDiffer.Parser;
 using TransDiffer.Parser.Structure;
 

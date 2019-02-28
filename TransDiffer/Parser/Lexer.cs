@@ -11,7 +11,7 @@ namespace TransDiffer.Parser
 
         readonly Reader reader;
 
-        bool seenEnd = false;
+        bool seenEnd;
 
         public Lexer(Reader r)
         {
@@ -56,7 +56,7 @@ namespace TransDiffer.Parser
             }
         }
 
-        Tuple<string, Tokens>[] keywords =
+        readonly Tuple<string, Tokens>[] keywords =
         {
             Tuple.Create("Begin", Tokens.Begin),
             Tuple.Create("End", Tokens.IdEnd),
@@ -167,18 +167,18 @@ namespace TransDiffer.Parser
             blah:
             switch (ich)
             {
-            case '{': return new Token(Tokens.LBrace, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
-            case '}': return new Token(Tokens.RBrace, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
-            case '(': return new Token(Tokens.LParen, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
-            case ')': return new Token(Tokens.RParen, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
-            case ',': return new Token(Tokens.Comma, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
-            case '+': return new Token(Tokens.Plus, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
-            case '-': return new Token(Tokens.Minus, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
-            case '*': return new Token(Tokens.Asterisk, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
-            case '/': return new Token(Tokens.Slash, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
-            case '|': return new Token(Tokens.Pipe, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
-            case '&': return new Token(Tokens.Ampersand, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
-            case '~': return new Token(Tokens.Squiggly, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
+                case '{': return new Token(Tokens.LBrace, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
+                case '}': return new Token(Tokens.RBrace, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
+                case '(': return new Token(Tokens.LParen, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
+                case ')': return new Token(Tokens.RParen, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
+                case ',': return new Token(Tokens.Comma, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
+                case '+': return new Token(Tokens.Plus, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
+                case '-': return new Token(Tokens.Minus, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
+                case '*': return new Token(Tokens.Asterisk, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
+                case '/': return new Token(Tokens.Slash, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
+                case '|': return new Token(Tokens.Pipe, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
+                case '&': return new Token(Tokens.Ampersand, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
+                case '~': return new Token(Tokens.Squiggly, reader.GetParsingContext(), reader.Read(1), reader.GetParsingContext());
             }
 
             if (char.IsLetter((char)ich) || ich == '_')
@@ -387,40 +387,41 @@ namespace TransDiffer.Parser
                 return ++number;
             }
 
-            if (ich == 'x' || ich == 'u')
+            if (ich != 'x' && ich != 'u')
             {
-                number++;
+                //throw new LexerException(this, $"Unknown escape sequence \\{ich}");
 
-                ich = reader.Peek(number);
-                if (char.IsDigit((char)ich) || (ich >= 'a' && ich <= 'f') || (ich >= 'A' && ich <= 'F'))
-                {
-                    number++;
-
-                    ich = reader.Peek(number);
-                    if (char.IsDigit((char)ich) || (ich >= 'a' && ich <= 'f') || (ich >= 'A' && ich <= 'F'))
-                    {
-                        number++;
-
-                        ich = reader.Peek(number);
-                        if (char.IsDigit((char)ich) || (ich >= 'a' && ich <= 'f') || (ich >= 'A' && ich <= 'F'))
-                        {
-                            number++;
-
-                            ich = reader.Peek(number);
-                            if (char.IsDigit((char)ich) || (ich >= 'a' && ich <= 'f') || (ich >= 'A' && ich <= 'F'))
-                            {
-                                number++;
-                            }
-                        }
-                    }
-                }
-                return number;
+                // assume single character sequence.
+                return ++number;
             }
 
-            //throw new LexerException(this, $"Unknown escape sequence \\{ich}");
+            number++;
 
-            // assume single character sequence.
-            return ++number;
+            ich = reader.Peek(number);
+            if (!char.IsDigit((char) ich) && (ich < 'a' || ich > 'f') && (ich < 'A' || ich > 'F'))
+                return number;
+
+            number++;
+
+            ich = reader.Peek(number);
+            if (!char.IsDigit((char) ich) && (ich < 'a' || ich > 'f') && (ich < 'A' || ich > 'F'))
+                return number;
+
+            number++;
+
+            ich = reader.Peek(number);
+            if (!char.IsDigit((char) ich) && (ich < 'a' || ich > 'f') && (ich < 'A' || ich > 'F'))
+                return number;
+
+            number++;
+
+            ich = reader.Peek(number);
+            if (char.IsDigit((char)ich) || (ich >= 'a' && ich <= 'f') || (ich >= 'A' && ich <= 'F'))
+            {
+                number++;
+            }
+
+            return number;
         }
 
         public override string ToString()
